@@ -12,7 +12,7 @@ import { IROLE } from "@/types/role"
 import { IMerchants } from "@/types/merchant"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
-function SignIn({ onChange }: { onChange: () => void }) {
+function SignIn({ onChange, onClose }: { onChange: () => void, onClose: () => void }) {
     const router = useRouter()
     const [role, setRole] = React.useState<string>(IROLE.MERCHANT)
     const dispatch = useDispatch()
@@ -44,9 +44,11 @@ function SignIn({ onChange }: { onChange: () => void }) {
             dispatch(setMerchant(res.data))
 
             toast.success("Account created successfully 🎉")
+            onClose();
 
             const urlToredirect = res.data.role === IROLE.MERCHANT ? "/service" : "/consumer"
-            router.push(urlToredirect)
+            if (urlToredirect) router.push(urlToredirect)
+
         }
     }
 

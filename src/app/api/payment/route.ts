@@ -5,6 +5,7 @@ import { sendRJResponse } from "@/utils/api"
 import { Cart } from "@/model/cart"
 import { Order } from "@/model/order"
 import { Transaction, TransactionStatus } from "@/model/transations"
+import { Merchants } from "@/model/merchants"
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -73,6 +74,8 @@ export async function GET(req: NextRequest) {
       receipt: `ord_${Date.now()}`,
     })
 
+    const merchant = await Merchants.findById(merchantId)
+
     const transaction = await Transaction.create({
       userId,
       merchantId,
@@ -86,13 +89,17 @@ export async function GET(req: NextRequest) {
       notes: {
         transactionId: transaction._id,
         purpose: "checkout",
+        merchant: merchant.name,
+        email: merchant.email
       },
     })
+
+    const updatedOrder = await razorpay.orders.fetch(razorpayOrder.id)
 
     return sendRJResponse({
       success: true,
       message: "Payment initiated successfully",
-      data: razorpayOrder,
+      data: updatedOrder,
       status: 200,
     })
   } catch (error) {

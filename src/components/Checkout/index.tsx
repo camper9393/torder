@@ -10,6 +10,8 @@ import { Orders } from "razorpay/dist/types/orders"
 import { getApi, postApi } from "@/utils/common"
 import toast from "react-hot-toast"
 import { useRouter } from "next/navigation"
+import autoTable from "jspdf-autotable"
+import jsPDF from "jspdf"
 
 export type RazorpayOrder = {
   id: string
@@ -17,7 +19,7 @@ export type RazorpayOrder = {
   currency: string
 }
 
-function CheckoutPage({merchantId}:{merchantId: string}) {
+function CheckoutPage({ merchantId }: { merchantId: string }) {
   const checkout: CheckOutItems[] = useAppSelector(state => state.checkOut)
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -44,7 +46,16 @@ function CheckoutPage({merchantId}:{merchantId: string}) {
       image: "https://res.cloudinary.com/dcyn3ewpv/image/upload/v1769262410/e9eec5ed9a883498f7c5ba1ed3c27fdc_idvihd.jpg",
       description: "Your order enters the domain",
       order_id: order.id,
-      handler: handleLogPayment,
+      handler: async function (response: any) {
+
+        await handleLogPayment(response)
+
+        generateReceiptPDF({
+          ...response,
+          amount: order.amount,
+          order
+        })
+      },
       theme: {
         color: "#16a34a",
       },
@@ -52,17 +63,49 @@ function CheckoutPage({merchantId}:{merchantId: string}) {
 
     const rzp = new (window as any).Razorpay(options)
     rzp.open()
+
+  }
+
+  const generateReceiptPDF = (payment: any) => {
+
+    const doc = new jsPDF()
+
+    const pageWidth = doc.internal.pageSize.width
+
+    // Header
+    doc.setFont("times", "bold")
+    doc.setFontSize(22)
+    doc.text("Payment Receipt - Qr Menu", pageWidth / 2, 20, { align: "center" })
+
+    doc.setFontSize(12)
+    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 35)
+
+    autoTable(doc, {
+      startY: 45,
+      head: [["Field", "Details"]],
+      body: [
+        ["Payment ID", payment.razorpay_payment_id],
+        ["Order ID", payment.razorpay_order_id],
+        ["Merchant", payment.order?.notes?.merchant || "Raj is Great"],
+        ["email", payment.order?.notes?.email || "unknown"],
+        ["Amount", (payment.amount / 100 || "—")],
+        ["Status", "SUCCESS"],
+      ],
+      theme: "grid"
+    })
+
+    doc.save(`receipt-${payment.razorpay_payment_id}.pdf`)
   }
 
   const handleLogPayment = async (req: any) => {
-      const result = await postApi<ApiResponse<void>>({
-        url: POST_PAYMENT_VERIFY,
-        values: req
-      })
+    const result = await postApi<ApiResponse<void>>({
+      url: POST_PAYMENT_VERIFY,
+      values: req
+    })
 
-      if (result?.success) {
-        router.back();
-      }
+    if (result?.success) {
+      router.back();
+    }
   }
 
 
@@ -128,7 +171,7 @@ function CheckoutPage({merchantId}:{merchantId: string}) {
           )}
         </div>
 
-        <button onClick={handlePay} className="w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 transition">
+        <button onClick={handlePay} className="w-full cursor-pointer rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 transition">
           Place Order • ₹{discountedTotal}
         </button>
       </div>

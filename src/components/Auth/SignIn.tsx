@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { IMerchants } from '@/types/merchant';
 import { IROLE } from '@/types/role';
 
-function Singup({ onChange }: { onChange: () => void }) {
+function Singup({ onChange, onClose }: { onChange: () => void, onClose: () => void }) {
     const dispatch = useAppDispatch();
     const router = useRouter();
 
@@ -33,8 +33,11 @@ function Singup({ onChange }: { onChange: () => void }) {
             }
             dispatch(setMerchant(res.data))
             toast.success(` Welcome ${res.data.name} 🎉`)
-            const urlToredirect = res.data.role === IROLE.MERCHANT ? "/service" : "/consumer"
-            router.push(urlToredirect)
+            onClose();
+
+            const urlToredirect = res.data.role === IROLE.MERCHANT && "/service"
+            if (urlToredirect) router.push(urlToredirect)
+            
         }
     }
     return (

@@ -36,7 +36,7 @@ export default function SectionOne() {
           variants={container}
           initial="hidden"
           animate="show"
-          className="relative z-10 w-full max-w-7xl mx-auto px-6 lg:px-12"
+          className="relative z-10 mt-10 w-full max-w-7xl mx-auto px-6 lg:px-12"
         >
           <div className="flex flex-col items-center lg:items-start text-center lg:text-left max-w-4xl mx-auto lg:mx-0">
             <motion.div variants={item} className="mb-6">

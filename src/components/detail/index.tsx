@@ -1,49 +1,30 @@
 "use client"
 
+import { OrderHistory } from "@/types/orderHistory"
+import { ApiResponse } from "@/utils/api";
+import { GET_TRANSACTION_HISTORY } from "@/utils/APIConstant";
+import { getApi } from "@/utils/common";
 import React from "react"
 
-const transactions = [
-    {
-        id: "TXN001",
-        merchant: "Fresh Foods Pvt Ltd",
-        email: "support@freshfoods.com",
-        amount: 297,
-        status: "Success",
-        date: "22 Jan 2026",
-    },
-    {
-        id: "TXN002",
-        merchant: "Burger Hub",
-        email: "contact@burgerhub.in",
-        amount: 149,
-        status: "Success",
-        date: "18 Jan 2026",
-    },
-    {
-        id: "TXN003",
-        merchant: "Daily Mart",
-        email: "help@dailymart.com",
-        amount: 89,
-        status: "Failed",
-        date: "15 Jan 2026",
-    },
-]
-
 function index() {
+    const [his, setHis] = React.useState<OrderHistory[]>([]);
+
+    const fetch = async () => {
+        const response = await getApi<ApiResponse<OrderHistory[]>>({
+            url: GET_TRANSACTION_HISTORY
+        })
+
+        if (response?.success) {
+            setHis(response.data)
+        }
+    }
+
+    React.useEffect(() => {
+        fetch()
+    },[])
+
     return (
         <div className="min-h-screen bg-gray-50 px-6 pt-20">
-            <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-gray-900">
-                    Fresh Foods Pvt Ltd
-                </p>
-                <p className="text-xs text-gray-800">
-                    MerchantId: 098309$32428
-                </p>
-                <p className="text-xs text-gray-500">
-                    support@freshfoods.com
-                </p>
-            </div>
-
             {/* Header */}
             <h1 className="mb-6 font-mono text-2xl text-zinc-950">
                 Transaction History
@@ -51,19 +32,23 @@ function index() {
 
             {/* Transactions */}
             <div className="flex flex-col gap-4">
-                {transactions.map((txn) => (
+                {his.map((txn) => (
                     <div
-                        key={txn.id}
+                        key={txn._id}
                         className="rounded-2xl bg-white p-4 shadow-sm hover:shadow-md transition"
                     >
                         {/* Merchant Info */}
                         <div className="mb-2">
                             <p className="text-sm font-semibold text-gray-900">
-                                {txn.merchant}
+                                {txn.name}
                             </p>
                             <p className="text-xs text-gray-500">
                                 {txn.email}
                             </p>
+                        </div>
+
+                        <div className="text-xs text-blue-600">
+                            {String(txn.items)}
                         </div>
 
                         {/* Transaction Meta */}
@@ -73,7 +58,7 @@ function index() {
                                     Transaction ID
                                 </p>
                                 <p className="font-mono text-xs text-gray-800">
-                                    {txn.id}
+                                    {txn.paymentId}
                                 </p>
                             </div>
 
@@ -82,7 +67,7 @@ function index() {
                                     ₹{txn.amount}
                                 </p>
                                 <p
-                                    className={`text-xs font-medium ${txn.status === "Success"
+                                    className={`text-xs font-medium ${txn.status === "COMPLETED"
                                             ? "text-green-600"
                                             : "text-red-600"
                                         }`}
@@ -94,7 +79,7 @@ function index() {
 
                         {/* Date */}
                         <p className="mt-2 text-xs text-gray-400">
-                            {txn.date}
+                            {new Date(txn.createdAt).toLocaleDateString()}
                         </p>
                     </div>
                 ))}

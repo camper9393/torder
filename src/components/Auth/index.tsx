@@ -42,8 +42,8 @@ function AuthDialog({
           toast.success(`Welcome back ${res.data.name} 👋`)
           dispatch(setMerchant(res.data))
           onClose()
-          const urlToredirect = res.data.role === IROLE.MERCHANT ? "/service" : "/consumer"
-          router.push(urlToredirect)
+          const urlToredirect = res.data.role === IROLE.MERCHANT && "/service"
+          if (urlToredirect) router.push(urlToredirect)
         }
       } catch {
         // silent fail
@@ -71,9 +71,9 @@ function AuthDialog({
             </div>
 
             {panel ? (
-              <SignIn onChange={handleChange} />
+              <SignIn onChange={handleChange} onClose={onClose} />
             ) : (
-              <Singup onChange={handleChange} />
+              <Singup onChange={handleChange} onClose={onClose} />
             )}
           </>
         )}

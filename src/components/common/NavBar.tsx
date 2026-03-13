@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useAppSelector } from "@/hook/redux"
 import { IROLE } from "@/types/role"
+import { postApi } from "@/utils/common"
+import { LOGOUT } from "@/utils/APIConstant"
 
 function NavBar() {
   const [open, setOpen] = useState(false)
@@ -18,6 +20,14 @@ function NavBar() {
     { name: "About", href: "/" },
     { name: "Contact", href: "/" }
   ]
+
+  const handleLogOut = async () => {
+    if (typeof window === "undefined") return;
+    await postApi({
+      url: LOGOUT
+    })
+    window.location.href = "/"
+  }
 
   return (
     <header className="fixed top-0 z-50 w-full border-b bg-white/70 backdrop-blur-md">
@@ -54,6 +64,12 @@ function NavBar() {
               >
                 Transections
               </Link>}
+
+              {user && (
+                <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
+                  LogOut
+                </button>
+              )}
 
           </nav>
 
@@ -108,6 +124,12 @@ function NavBar() {
               >
                 Transections
               </Link>}
+              {user && (
+                <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
+                  LogOut
+                </button>
+              )}
+              
         </nav>
       </div>
     </header>

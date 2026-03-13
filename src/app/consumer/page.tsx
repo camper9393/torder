@@ -1,8 +1,9 @@
 import React from 'react'
+import Consumer from "@/components/Consumer"
 
 function page() {
   return (
-    <div>How to use</div>
+    <Consumer />
   )
 }
 

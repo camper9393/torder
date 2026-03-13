@@ -3,6 +3,7 @@
 export const SESSION: string = "/auth/session"
 export const MERCHANT_SIGNIN: string = "/auth/signin"
 export const LOGIN: string = "/auth/signup"
+export const LOGOUT: string = "/auth/logout"
 
 // Menu
 export const MENUBUILDER_LISTS: string = "/menu/lists"
@@ -28,3 +29,9 @@ export const POST_PAYMENT_VERIFY: string = "/payment/verify"
 export const GET_DASHBOARD_MATRICES: string = "/dashboard/matrices"
 export const GET_MOST_ORDERED_ITEMS: string = "/dashboard/popular-item"
 export const GET_ORDER_TRENS: string = "/dashboard/order-trend"
+
+// order history
+export const GET_ORDER_HISTORY: string = "/orders"
+export const GET_ALL_ORDER_HISTORY: string = "/orders/all"
+
+export const GET_TRANSACTION_HISTORY: string = "/payment/history"
