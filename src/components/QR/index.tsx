@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useState } from "react"
 import NavBar from "../common/NavBar"
 import Footer from "../common/Footer"
 import TypeWriter from "../common/TypeWritter"
@@ -11,7 +11,7 @@ import { useAppSelector } from "@/hook/redux"
 import { deleteApi, getApi, postApi } from "@/utils/common"
 import { ApiResponse } from "@/utils/api"
 import { GET_QR, POST_QR, REMOVE_QR } from "@/utils/APIConstant"
-import { AppUrl } from "@/utils/constants"
+import { buildConsumerMenuUrl } from "@/utils/table"
 
 type QRItem = {
   _id: string
@@ -19,8 +19,6 @@ type QRItem = {
   merchantId: string
   createdAt: string
 }
-
-const BASE_URL = AppUrl;
 
 const GenerateQRPage = () => {
   const merchantId = useAppSelector(state => state.merchant).merchant?._id;
@@ -48,8 +46,8 @@ const GenerateQRPage = () => {
     fetchQRs()
   }, [])
 
-  const buildQRValue = (merchantId: string, name: string) =>
-    `${BASE_URL}/consumer/${merchantId}/${encodeURIComponent(name)}`
+  const buildQRValue = (id: string, table: string) =>
+    buildConsumerMenuUrl(id, table)
 
   const handlePreview = () => {
     if (!inputName.trim()) {
@@ -57,7 +55,12 @@ const GenerateQRPage = () => {
       return
     }
 
-    setPreviewQR(`${BASE_URL}/consumer/${merchantId}?id=${inputName}`)
+    if (!merchantId) {
+      toast.error("Sign in as a merchant to generate QR codes")
+      return
+    }
+
+    setPreviewQR(buildQRValue(String(merchantId), inputName.trim()))
   }
 
   const handleSaveQR = async () => {
@@ -127,7 +130,6 @@ const GenerateQRPage = () => {
     <div className="min-h-screen bg-[#F8F5F0]">
       <NavBar />
 
-      {/* HEADER */}
       <header className="text-center pt-24 px-6">
         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900">
           Generate Your
@@ -141,7 +143,6 @@ const GenerateQRPage = () => {
         </p>
       </header>
 
-      {/* CREATE */}
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="rounded-2xl bg-white shadow-sm p-8 md:p-12">
           <div className="flex flex-col md:flex-row items-center justify-between">
@@ -181,7 +182,6 @@ const GenerateQRPage = () => {
         </div>
       </section>
 
-      {/* LIST */}
       {!loading && qrs.length > 0 && (
         <section className="mx-auto max-w-6xl px-6 pb-32">
           <h2 className="text-2xl font-bold mb-8">Saved QR Codes</h2>

@@ -9,11 +9,9 @@ const mongoServer = async (): Promise<void> => {
             return ;
         } 
 
-        if (!process.env.MONGO_URI) {
-            console.log("Please Check Env + ${process.env.MONGO_URI} ");
-            return ;
-        }
-        await mongoose.connect(process.env.MONGO_URI);
+        const uri =
+            process.env.MONGO_URI || "mongodb://127.0.0.1:27017/qr-menu";
+        await mongoose.connect(uri);
         console.log("Mongodb is connected successfully");
     } catch (error) {
         console.error('MongoDB Connection Error:', error);

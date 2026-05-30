@@ -46,8 +46,9 @@ function SignIn({ onChange, onClose }: { onChange: () => void, onClose: () => vo
             toast.success("Account created successfully 🎉")
             onClose();
 
-            const urlToredirect = res.data.role === IROLE.MERCHANT ? "/service" : "/consumer"
-            if (urlToredirect) router.push(urlToredirect)
+            if (res.data.role === IROLE.MERCHANT) {
+              router.push("/menu")
+            }
 
         }
     }

@@ -21,9 +21,10 @@ export const REMOVE_QR: string = "/menu/qr/remove"
 export const GET_CART: string = "/cart"
 export const POST_ITEM_CART: string = "/cart"
 
-// payment
-export const GET_PAYMENT_ORDER: string = "/payment"
-export const POST_PAYMENT_VERIFY: string = "/payment/verify"
+// tablet orders
+export const POST_PLACE_ORDER: string = "/orders/place"
+export const GET_KITCHEN_ORDERS: string = "/kitchen/orders"
+export const PATCH_KITCHEN_ORDER: string = "/kitchen/orders"
 
 // dashboard
 export const GET_DASHBOARD_MATRICES: string = "/dashboard/matrices"

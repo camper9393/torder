@@ -1,25 +1,61 @@
 import mongoose from "mongoose";
-import { ICartItem } from "./cart";
 
-export interface IOrder {
-    _id: mongoose.Types.ObjectId;
-    merchantId: mongoose.Types.ObjectId;
-    userId: mongoose.Types.ObjectId;
-    items: ICartItem[];
-    amount: number;
-    createdAt: Date;
-    updatedAt: Date;
+export type OrderStatus = "new" | "accepted" | "cooking" | "done";
+
+export interface IOrderItem {
+  menuItemId?: mongoose.Types.ObjectId;
+  title: string;
+  price: number;
+  quantity: number;
+  image?: string;
 }
 
-const orderSchema = new mongoose.Schema<IOrder>({
-    userId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "merchants" },
-    merchantId: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "merchants" },
-    items: [{
-        item: { type: mongoose.Schema.Types.ObjectId, ref: "menus", required: true },
-        quantity: { type: Number, required: true, min: [1, "Quantity cannot be less than 1"], default: 1 }
-    }],
-    amount: { type: Number, required: true, min: 0 },
-}, { timestamps: true })
+export interface IOrder {
+  _id: mongoose.Types.ObjectId;
+  merchantId: mongoose.Types.ObjectId;
+  userId?: mongoose.Types.ObjectId;
+  tableName: string;
+  items: IOrderItem[];
+  total: number;
+  status: OrderStatus;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const orderItemSchema = new mongoose.Schema<IOrderItem>(
+  {
+    menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "menus" },
+    title: { type: String, required: true },
+    price: { type: Number, required: true },
+    quantity: { type: Number, required: true, min: 1 },
+    image: { type: String },
+  },
+  { _id: false }
+);
+
+const orderSchema = new mongoose.Schema<IOrder>(
+  {
+    merchantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "merchants",
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "merchants",
+      required: false,
+    },
+    tableName: { type: String, required: true },
+    items: { type: [orderItemSchema], required: true },
+    total: { type: Number, required: true, min: 0 },
+    status: {
+      type: String,
+      enum: ["new", "accepted", "cooking", "done"],
+      default: "new",
+    },
+  },
+  { timestamps: true }
+);
 
 export const Order =
   mongoose.models.orders || mongoose.model<IOrder>("orders", orderSchema);

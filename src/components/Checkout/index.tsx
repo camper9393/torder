@@ -1,116 +1,75 @@
 "use client"
 
 import { useAppDispatch, useAppSelector } from "@/hook/redux"
-import { CheckOutItems, syncCartToCheckOut } from "@/store/reducer/checkout"
+import {
+  clearCheckout,
+  setTableName,
+  syncCartToCheckOut,
+} from "@/store/reducer/checkout"
 import React from "react"
 import CheckOutItem from "./CheckOutItem"
-import { GET_PAYMENT_ORDER, POST_PAYMENT_VERIFY } from "@/utils/APIConstant"
+import { POST_PLACE_ORDER } from "@/utils/APIConstant"
 import { ApiResponse } from "@/utils/api"
-import { Orders } from "razorpay/dist/types/orders"
-import { getApi, postApi } from "@/utils/common"
+import { postApi } from "@/utils/common"
 import toast from "react-hot-toast"
-import { useRouter } from "next/navigation"
-import autoTable from "jspdf-autotable"
-import jsPDF from "jspdf"
+import { useRouter, useSearchParams } from "next/navigation"
+import { parseTableFromSearchParam } from "@/utils/table"
 
-export type RazorpayOrder = {
-  id: string
-  amount: number
-  currency: string
-}
+function CheckoutPage({
+  merchantId,
+  initialTableName,
+}: {
+  merchantId: string
+  initialTableName?: string
+}) {
+  const checkout = useAppSelector((state) => state.checkOut.items)
+  const tableName = useAppSelector((state) => state.checkOut.tableName)
+  const dispatch = useAppDispatch()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [submitting, setSubmitting] = React.useState(false)
 
-function CheckoutPage({ merchantId }: { merchantId: string }) {
-  const checkout: CheckOutItems[] = useAppSelector(state => state.checkOut)
-  const dispatch = useAppDispatch();
-  const router = useRouter();
+  React.useEffect(() => {
+    const fromUrl = parseTableFromSearchParam(searchParams.get("table"))
+    dispatch(setTableName(fromUrl ?? initialTableName))
+  }, [searchParams, initialTableName, dispatch])
 
-  const handlePay = async () => {
-    const res = await getApi<ApiResponse<RazorpayOrder>>({
-      url: GET_PAYMENT_ORDER + `?mid=${merchantId}`,
+  const handlePlaceOrder = async () => {
+    if (checkout.length === 0) return
+
+    setSubmitting(true)
+
+    const total = checkout.reduce(
+      (sum, item) => sum + item.price * item.itemCount,
+      0
+    )
+
+    const res = await postApi<ApiResponse<unknown>>({
+      url: POST_PLACE_ORDER,
+      values: {
+        merchantId,
+        tableName,
+        items: checkout,
+        total,
+      },
     })
 
-    if (!res?.success || !res.data) return
+    setSubmitting(false)
 
-    if (!(window as any).Razorpay) {
-      toast.error("Razorpay SDK not loaded")
+    if (!res?.success) {
+      toast.error(res?.message || "Could not place order")
       return
     }
 
-    const order = res.data
-
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-      amount: order.amount,
-      currency: "INR",
-      name: "Raj is Great",
-      image: "https://res.cloudinary.com/dcyn3ewpv/image/upload/v1769262410/e9eec5ed9a883498f7c5ba1ed3c27fdc_idvihd.jpg",
-      description: "Your order enters the domain",
-      order_id: order.id,
-      handler: async function (response: any) {
-
-        await handleLogPayment(response)
-
-        generateReceiptPDF({
-          ...response,
-          amount: order.amount,
-          order
-        })
-      },
-      theme: {
-        color: "#16a34a",
-      },
-    }
-
-    const rzp = new (window as any).Razorpay(options)
-    rzp.open()
-
+    dispatch(clearCheckout())
+    toast.success(`Order sent to kitchen — ${tableName}`)
+    router.push(
+      `/consumer/${merchantId}?table=${encodeURIComponent(tableName)}`
+    )
   }
-
-  const generateReceiptPDF = (payment: any) => {
-
-    const doc = new jsPDF()
-
-    const pageWidth = doc.internal.pageSize.width
-
-    // Header
-    doc.setFont("times", "bold")
-    doc.setFontSize(22)
-    doc.text("Payment Receipt - Qr Menu", pageWidth / 2, 20, { align: "center" })
-
-    doc.setFontSize(12)
-    doc.text(`Date: ${new Date().toLocaleString()}`, 14, 35)
-
-    autoTable(doc, {
-      startY: 45,
-      head: [["Field", "Details"]],
-      body: [
-        ["Payment ID", payment.razorpay_payment_id],
-        ["Order ID", payment.razorpay_order_id],
-        ["Merchant", payment.order?.notes?.merchant || "Raj is Great"],
-        ["email", payment.order?.notes?.email || "unknown"],
-        ["Amount", (payment.amount / 100 || "—")],
-        ["Status", "SUCCESS"],
-      ],
-      theme: "grid"
-    })
-
-    doc.save(`receipt-${payment.razorpay_payment_id}.pdf`)
-  }
-
-  const handleLogPayment = async (req: any) => {
-    const result = await postApi<ApiResponse<void>>({
-      url: POST_PAYMENT_VERIFY,
-      values: req
-    })
-
-    if (result?.success) {
-      router.back();
-    }
-  }
-
 
   React.useEffect(() => {
-    dispatch(syncCartToCheckOut({ dispatch: dispatch }));
+    dispatch(syncCartToCheckOut({ dispatch: dispatch }))
   }, [])
 
   if (checkout.length === 0) {
@@ -123,8 +82,7 @@ function CheckoutPage({ merchantId }: { merchantId: string }) {
 
   const originalTotal = checkout.reduce(
     (sum, item) =>
-      sum +
-      (item.originalPrice ?? item.price) * item.itemCount,
+      sum + (item.originalPrice ?? item.price) * item.itemCount,
     0
   )
 
@@ -137,21 +95,16 @@ function CheckoutPage({ merchantId }: { merchantId: string }) {
 
   return (
     <div className="relative min-h-screen bg-gray-50 px-6 pt-20">
+      <h1 className="mb-1 font-mono text-2xl text-zinc-950">Checkout</h1>
+      <p className="mb-4 text-sm text-gray-500">Table: {tableName}</p>
 
-      <h1 className="mb-4 font-mono text-2xl text-zinc-950">
-        Checkout
-      </h1>
-
-      {/* Items */}
       <div className="mb-32 flex flex-col gap-3">
         {checkout.map((item) => (
           <CheckOutItem key={String(item._id)} item={item} />
         ))}
       </div>
 
-      {/* Bottom Summary */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-white px-6 py-4 shadow-lg">
-
         <div className="mb-3 space-y-1 text-sm">
           <div className="flex justify-between text-gray-500">
             <span>Item total</span>
@@ -171,8 +124,14 @@ function CheckoutPage({ merchantId }: { merchantId: string }) {
           )}
         </div>
 
-        <button onClick={handlePay} className="w-full cursor-pointer rounded-xl bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 transition">
-          Place Order • ₹{discountedTotal}
+        <button
+          onClick={handlePlaceOrder}
+          disabled={submitting}
+          className="w-full cursor-pointer rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
+        >
+          {submitting
+            ? "Placing order..."
+            : `Place Order • ₹${discountedTotal}`}
         </button>
       </div>
     </div>

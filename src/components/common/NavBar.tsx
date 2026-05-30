@@ -13,11 +13,14 @@ import { LOGOUT } from "@/utils/APIConstant"
 
 function NavBar() {
   const [open, setOpen] = useState(false)
+  const [mounted, setMounted] = React.useState(false)
   const user = useAppSelector(state => state.merchant).merchant
+
+  React.useEffect(() => setMounted(true), [])
 
   const links = [
     { name: "Home", href: "/" },
-    { name: "About", href: "/" },
+    { name: "Kitchen", href: "/kitchen" },
     { name: "Contact", href: "/" }
   ]
 
@@ -49,7 +52,7 @@ function NavBar() {
               </Link>
             ))}
 
-            {user && user.role === "MERCHANT" &&
+            {mounted && user && user.role === "MERCHANT" &&
               <Link
                 href={`/dashboard/${user._id}?uid=${user.uid}`}
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
@@ -57,7 +60,7 @@ function NavBar() {
                 Dashboard
               </Link>}
 
-              {user && user.role === "CONSUMER" &&
+              {mounted && user && user.role === "CONSUMER" &&
               <Link
                 href={`/detail/${user._id}`}
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
@@ -65,7 +68,7 @@ function NavBar() {
                 Transections
               </Link>}
 
-              {user && (
+              {mounted && user && (
                 <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
                   LogOut
                 </button>
@@ -109,7 +112,7 @@ function NavBar() {
               {link.name}
             </Link>
           ))}
-          {user && user.role === IROLE.MERCHANT &&
+          {mounted && user && user.role === IROLE.MERCHANT &&
             <Link
               href={`/dashboard/${user._id}?uid=${user.uid}`}
               className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
@@ -117,14 +120,14 @@ function NavBar() {
               Dashboard
             </Link>}
 
-            {user && user.role === "CONSUMER" &&
+            {mounted && user && user.role === "CONSUMER" &&
               <Link
                 href={`/detail/${user._id}`}
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
               >
                 Transections
               </Link>}
-              {user && (
+              {mounted && user && (
                 <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
                   LogOut
                 </button>

@@ -4,8 +4,6 @@ import "./globals.css"
 import NavBar from "@/components/common/NavBar"
 import { Toaster } from "react-hot-toast"
 import { ReduxProvider } from "@/context/redux"
-import Script from "next/script"
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -40,11 +38,6 @@ export default function RootLayout({
 
           <Toaster />
         </ReduxProvider>
-
-        <Script
-          src="https://checkout.razorpay.com/v1/checkout.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   )

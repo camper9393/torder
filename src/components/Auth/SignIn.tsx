@@ -35,8 +35,9 @@ function Singup({ onChange, onClose }: { onChange: () => void, onClose: () => vo
             toast.success(` Welcome ${res.data.name} 🎉`)
             onClose();
 
-            const urlToredirect = res.data.role === IROLE.MERCHANT && "/service"
-            if (urlToredirect) router.push(urlToredirect)
+            if (res.data.role === IROLE.MERCHANT) {
+              router.push("/menu")
+            }
             
         }
     }

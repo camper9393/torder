@@ -11,13 +11,28 @@ import { getApi } from "@/utils/common"
 import { ApiResponse } from "@/utils/api"
 import { CONSUMER_MENU } from "@/utils/APIConstant"
 import { IMenu } from "@/types/menu"
-import { syncCartToCheckOut } from "@/store/reducer/checkout"
+import { setTableName, syncCartToCheckOut } from "@/store/reducer/checkout"
 import { useAppDispatch, useAppSelector } from "@/hook/redux"
+import { useSearchParams } from "next/navigation"
+import { parseTableFromSearchParam } from "@/utils/table"
 
-function MerchantPage({ merchantId }: { merchantId: string }) {
+function MerchantPage({
+  merchantId,
+  initialTableName,
+}: {
+  merchantId: string
+  initialTableName?: string
+}) {
   const [menu, setMenu] = React.useState<IMenu[]>([])
-  const dispatch = useAppDispatch();
-  const userId = useAppSelector(state => state.merchant).merchant?._id
+  const dispatch = useAppDispatch()
+  const searchParams = useSearchParams()
+  const tableName = useAppSelector((state) => state.checkOut.tableName)
+  const userId = useAppSelector((state) => state.merchant).merchant?._id
+
+  React.useEffect(() => {
+    const fromUrl = parseTableFromSearchParam(searchParams.get("table"))
+    dispatch(setTableName(fromUrl ?? initialTableName))
+  }, [searchParams, initialTableName, dispatch])
 
   const menuItem = React.useMemo(() => {
     const map = new Map<string, IMenu[]>()
@@ -47,9 +62,8 @@ function MerchantPage({ merchantId }: { merchantId: string }) {
   }, [merchantId])
 
   React.useEffect(() => {
-    dispatch(syncCartToCheckOut({ dispatch: dispatch }));
-  },[])
-
+    dispatch(syncCartToCheckOut({ dispatch: dispatch }))
+  }, [])
 
   return (
     <>
@@ -57,7 +71,6 @@ function MerchantPage({ merchantId }: { merchantId: string }) {
         <div className="min-h-screen bg-[#F8F5F0]">
           <NavBar />
 
-          {/* HERO */}
           <div className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
             <div className="absolute inset-0 z-0">
               <Image
@@ -72,7 +85,7 @@ function MerchantPage({ merchantId }: { merchantId: string }) {
 
             <div className="relative z-10 text-center px-6 max-w-3xl">
               <p className="mb-4 inline-block rounded-full bg-white/10 px-5 py-2 text-sm tracking-wide text-white backdrop-blur-md">
-                Curated • Fresh • Crafted
+                Table {tableName}
               </p>
 
               <h1 className="text-4xl md:text-6xl font-playfair font-bold text-white">
@@ -80,23 +93,19 @@ function MerchantPage({ merchantId }: { merchantId: string }) {
               </h1>
 
               <p className="mt-3 text-lg text-white/80">
-                Discover handcrafted dishes made with premium ingredients and bold flavors.
+                Discover handcrafted dishes made with premium ingredients and bold
+                flavors.
               </p>
             </div>
           </div>
 
-          {/* MENU */}
           <div className="relative -top-12 rounded-t-4xl bg-[#F8F5F0] p-8">
             <h1 className="mb-6 text-center text-3xl md:text-6xl font-serif font-bold text-slate-950">
-              What's your Mood
+              What&apos;s your Mood
             </h1>
 
             {Array.from(menuItem.entries()).map(([section, items]) => (
-              <MenuSection
-                key={section}
-                section={section}
-                items={items}
-              />
+              <MenuSection key={section} section={section} items={items} />
             ))}
           </div>
 
