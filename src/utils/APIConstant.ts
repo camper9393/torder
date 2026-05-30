@@ -25,6 +25,12 @@ export const POST_ITEM_CART: string = "/cart"
 export const POST_PLACE_ORDER: string = "/orders/place"
 export const GET_KITCHEN_ORDERS: string = "/kitchen/orders"
 export const PATCH_KITCHEN_ORDER: string = "/kitchen/orders"
+export const GET_COMPLETED_ORDER_HISTORY: string = "/kitchen/history"
+
+// waiter call
+export const POST_WAITER_CALL: string = "/waiter-call"
+export const GET_WAITER_CALL: string = "/waiter-call"
+export const PATCH_WAITER_CALL: string = "/waiter-call"
 
 // dashboard
 export const GET_DASHBOARD_MATRICES: string = "/dashboard/matrices"

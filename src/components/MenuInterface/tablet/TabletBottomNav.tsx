@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useAppSelector } from "@/hook/redux"
 import { cn } from "@/lib/utils"
 import {
@@ -11,6 +12,9 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
+import { POST_WAITER_CALL } from "@/utils/APIConstant"
+import { ApiResponse } from "@/utils/api"
+import { postApi } from "@/utils/common"
 import { tabletCopy, TabletLocale } from "./tabletUi"
 
 type TabletBottomNavProps = {
@@ -38,6 +42,26 @@ function TabletBottomNav({
   const navBtn =
     "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold text-gray-500 touch-manipulation active:scale-95 sm:text-xs"
 
+  const [callingStaff, setCallingStaff] = React.useState(false)
+
+  const handleCallStaff = async () => {
+    if (callingStaff) return
+    setCallingStaff(true)
+
+    const res = await postApi<ApiResponse<unknown>>({
+      url: POST_WAITER_CALL,
+      values: { merchantId, tableName },
+    })
+
+    setCallingStaff(false)
+
+    if (res?.success) {
+      toast.success(copy.staffCalled)
+    } else {
+      toast.error(res?.message || copy.staffCallFailed)
+    }
+  }
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#d4ddf0] bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-stretch gap-1">
@@ -62,7 +86,8 @@ function TabletBottomNav({
         <button
           type="button"
           className={navBtn}
-          onClick={() => toast.success(copy.staffCalled)}
+          disabled={callingStaff}
+          onClick={handleCallStaff}
         >
           <UserRound className="h-5 w-5 shrink-0" aria-hidden />
           <span className="truncate">{copy.callStaff}</span>
