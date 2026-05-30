@@ -6,8 +6,10 @@ import { ApiResponse } from "@/utils/api"
 import { getApi, patchApi } from "@/utils/common"
 import toast from "react-hot-toast"
 import { OrderStatus } from "@/model/order"
+import { getKitchenDingSrc } from "@/utils/kitchenDing"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
+import { Volume2, VolumeX } from "lucide-react"
 
 export type KitchenOrder = {
   _id: string
@@ -40,6 +42,57 @@ const statusColor: Record<OrderStatus, string> = {
 function KitchenPage() {
   const [orders, setOrders] = React.useState<KitchenOrder[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [soundEnabled, setSoundEnabled] = React.useState(false)
+
+  const notifiedOrderIdsRef = React.useRef<Set<string>>(new Set())
+  const initialLoadDoneRef = React.useRef(false)
+  const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const soundEnabledRef = React.useRef(false)
+
+  React.useEffect(() => {
+    soundEnabledRef.current = soundEnabled
+  }, [soundEnabled])
+
+  const getAudio = React.useCallback(() => {
+    if (!audioRef.current) {
+      const src = getKitchenDingSrc()
+      if (!src) return null
+      audioRef.current = new Audio(src)
+      audioRef.current.volume = 0.6
+    }
+    return audioRef.current
+  }, [])
+
+  const playDing = React.useCallback(() => {
+    if (!soundEnabledRef.current) return
+    const audio = getAudio()
+    if (!audio) return
+    audio.currentTime = 0
+    void audio.play().catch(() => {
+      // Autoplay may still be blocked until user gesture
+    })
+  }, [getAudio])
+
+  const notifyNewOrders = React.useCallback(
+    (fetchedOrders: KitchenOrder[]) => {
+      const newStatusOrders = fetchedOrders.filter((o) => o.status === "new")
+
+      if (!initialLoadDoneRef.current) {
+        newStatusOrders.forEach((o) =>
+          notifiedOrderIdsRef.current.add(o._id)
+        )
+        initialLoadDoneRef.current = true
+        return
+      }
+
+      for (const order of newStatusOrders) {
+        if (notifiedOrderIdsRef.current.has(order._id)) continue
+        notifiedOrderIdsRef.current.add(order._id)
+        playDing()
+      }
+    },
+    [playDing]
+  )
 
   const fetchOrders = React.useCallback(async () => {
     const res = await getApi<ApiResponse<KitchenOrder[]>>({
@@ -47,16 +100,34 @@ function KitchenPage() {
     })
 
     if (res?.success && res.data) {
+      notifyNewOrders(res.data)
       setOrders(res.data)
     }
     setLoading(false)
-  }, [])
+  }, [notifyNewOrders])
 
   React.useEffect(() => {
     fetchOrders()
     const interval = setInterval(fetchOrders, 5000)
     return () => clearInterval(interval)
   }, [fetchOrders])
+
+  const handleEnableSound = async () => {
+    const audio = getAudio()
+    if (!audio) {
+      toast.error("Could not initialize sound")
+      return
+    }
+
+    try {
+      audio.currentTime = 0
+      await audio.play()
+      setSoundEnabled(true)
+      soundEnabledRef.current = true
+    } catch {
+      toast.error("Could not enable sound — try again")
+    }
+  }
 
   const updateStatus = async (orderId: string, status: OrderStatus) => {
     const res = await patchApi<ApiResponse<KitchenOrder>>({
@@ -76,9 +147,40 @@ function KitchenPage() {
   return (
     <div className="min-h-screen bg-[#F8F5F0] px-4 py-24 md:px-8">
       <div className="mx-auto max-w-4xl">
-        <h1 className="mb-2 font-serif text-3xl font-bold text-slate-950">
-          Kitchen
-        </h1>
+        <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
+          <h1 className="font-serif text-3xl font-bold text-slate-950">
+            Kitchen
+          </h1>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="flex items-center gap-1.5 text-sm text-gray-600"
+              title={soundEnabled ? "Sound enabled" : "Sound off"}
+            >
+              {soundEnabled ? (
+                <Volume2 className="h-4 w-4 text-green-600" aria-hidden />
+              ) : (
+                <VolumeX className="h-4 w-4 text-gray-400" aria-hidden />
+              )}
+              <span className="sr-only">
+                {soundEnabled ? "Sound enabled" : "Sound disabled"}
+              </span>
+            </span>
+
+            {!soundEnabled && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleEnableSound}
+                className="border-green-600 text-green-700 hover:bg-green-50"
+              >
+                Enable Sound
+              </Button>
+            )}
+          </div>
+        </div>
+
         <p className="mb-8 text-sm text-gray-600">
           Active orders refresh every 5 seconds
         </p>

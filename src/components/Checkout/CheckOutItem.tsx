@@ -37,7 +37,7 @@ function CheckOutItem({ item }: { item: CheckOutItems }) {
   }
 
   return (
-    <div className="flex w-full gap-4 rounded-2xl bg-white p-3 shadow-sm hover:shadow-md transition">
+    <div className="flex w-full gap-4 rounded-2xl bg-white p-4 shadow-[0_4px_20px_rgba(30,94,255,0.08)] ring-1 ring-black/5 transition">
       {/* Image */}
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
         <Image
@@ -60,12 +60,11 @@ function CheckOutItem({ item }: { item: CheckOutItems }) {
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="text-base font-bold text-[#1E5EFF]">
             ₹{item.price * qty}
           </span>
 
-          {/* Quantity Control */}
-          <div className="flex items-center gap-3 rounded-lg border border-green-600 px-2 py-1 text-green-600">
+          <div className="flex items-center gap-3 rounded-xl border-2 border-[#1E5EFF] bg-[#f0f4fc] px-2 py-1 text-[#1E5EFF]">
             <button
               onClick={() => handleUpdate(qty - 1)}
               className="text-sm font-bold"

@@ -10,13 +10,20 @@ import { useAppSelector } from "@/hook/redux"
 import { IROLE } from "@/types/role"
 import { postApi } from "@/utils/common"
 import { LOGOUT } from "@/utils/APIConstant"
+import { usePathname } from "next/navigation"
+import { isConsumerTabletRoute } from "@/utils/routes"
 
 function NavBar() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = React.useState(false)
   const user = useAppSelector(state => state.merchant).merchant
 
   React.useEffect(() => setMounted(true), [])
+
+  if (isConsumerTabletRoute(pathname)) {
+    return null
+  }
 
   const links = [
     { name: "Home", href: "/" },

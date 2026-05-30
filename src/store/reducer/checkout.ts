@@ -5,6 +5,7 @@ import { GET_CART, POST_ITEM_CART } from "@/utils/APIConstant";
 import { UNKNOWN_TABLE, normalizeTableName } from "@/utils/table";
 import { getApi, postApi } from "@/utils/common";
 import { createAsyncThunk, createSlice, Dispatch, PayloadAction } from "@reduxjs/toolkit"
+import { RootState } from "@/store/store"
 
 export interface CheckOutItems extends IMenu {
   itemCount: number
@@ -31,12 +32,17 @@ export const syncCartWithDB = createAsyncThunk(
 
 export const syncCartToCheckOut = createAsyncThunk(
   "checkout/cart",
-  async ({ dispatch }: { dispatch: Dispatch }) => {
+  async ({ dispatch }: { dispatch: Dispatch }, { getState }) => {
+    const merchant = (getState() as RootState).merchant.merchant;
+    if (!merchant?._id) {
+      return null;
+    }
+
     const response = await getApi<ApiResponse<CheckOutItems[]>>({
-      url: GET_CART
+      url: GET_CART,
     });
     if (response?.success) {
-      dispatch(setCheckout(response?.data));
+      dispatch(setCheckout(response?.data ?? []));
       return response?.data;
     }
     return null;

@@ -8,12 +8,22 @@ import {
 } from "@/store/reducer/checkout"
 import React from "react"
 import CheckOutItem from "./CheckOutItem"
+import TabletCheckoutLayout from "./TabletCheckoutLayout"
 import { POST_PLACE_ORDER } from "@/utils/APIConstant"
+import { CONSUMER_MENU } from "@/utils/APIConstant"
 import { ApiResponse } from "@/utils/api"
-import { postApi } from "@/utils/common"
+import { getApi, postApi } from "@/utils/common"
 import toast from "react-hot-toast"
 import { useRouter, useSearchParams } from "next/navigation"
 import { parseTableFromSearchParam } from "@/utils/table"
+import { bumpSessionOrderNumber } from "@/utils/tabletSession"
+import FullscreenButton from "@/components/MenuInterface/FullscreenButton"
+import { tabletCopy, TABLET_BG } from "@/components/MenuInterface/tablet/tabletUi"
+
+type ConsumerMenuPayload = {
+  menu: unknown[]
+  restaurantName: string
+}
 
 function CheckoutPage({
   merchantId,
@@ -28,11 +38,24 @@ function CheckoutPage({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [submitting, setSubmitting] = React.useState(false)
+  const [restaurantName, setRestaurantName] = React.useState("Restaurant")
 
   React.useEffect(() => {
     const fromUrl = parseTableFromSearchParam(searchParams.get("table"))
     dispatch(setTableName(fromUrl ?? initialTableName))
   }, [searchParams, initialTableName, dispatch])
+
+  React.useEffect(() => {
+    const loadRestaurant = async () => {
+      const res = await getApi<ApiResponse<ConsumerMenuPayload | unknown[]>>({
+        url: CONSUMER_MENU + `?merchantId=${merchantId}`,
+      })
+      if (res?.success && res.data && !Array.isArray(res.data)) {
+        setRestaurantName(res.data.restaurantName ?? "Restaurant")
+      }
+    }
+    loadRestaurant()
+  }, [merchantId])
 
   const handlePlaceOrder = async () => {
     if (checkout.length === 0) return
@@ -61,6 +84,7 @@ function CheckoutPage({
       return
     }
 
+    bumpSessionOrderNumber(merchantId)
     dispatch(clearCheckout())
     toast.success(`Order sent to kitchen — ${tableName}`)
     router.push(
@@ -72,10 +96,23 @@ function CheckoutPage({
     dispatch(syncCartToCheckOut({ dispatch: dispatch }))
   }, [])
 
+  const tableQuery = `?table=${encodeURIComponent(tableName)}`
+
   if (checkout.length === 0) {
     return (
-      <div className="px-6 pt-20 text-center text-gray-500">
-        Your cart is empty
+      <div
+        className="flex min-h-screen flex-col items-center justify-center px-6 pb-28"
+        style={{ backgroundColor: TABLET_BG }}
+      >
+        <FullscreenButton className="!top-4 !right-3" />
+        <p className="text-center text-gray-600">{tabletCopy.en.emptyCart}</p>
+        <button
+          type="button"
+          onClick={() => router.push(`/consumer/${merchantId}${tableQuery}`)}
+          className="mt-6 min-h-12 rounded-2xl bg-[#1E5EFF] px-8 text-sm font-bold text-white touch-manipulation"
+        >
+          {tabletCopy.en.backToMenu}
+        </button>
       </div>
     )
   }
@@ -94,47 +131,21 @@ function CheckoutPage({
   const savings = originalTotal - discountedTotal
 
   return (
-    <div className="relative min-h-screen bg-gray-50 px-6 pt-20">
-      <h1 className="mb-1 font-mono text-2xl text-zinc-950">Checkout</h1>
-      <p className="mb-4 text-sm text-gray-500">Table: {tableName}</p>
-
-      <div className="mb-32 flex flex-col gap-3">
-        {checkout.map((item) => (
-          <CheckOutItem key={String(item._id)} item={item} />
-        ))}
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-white px-6 py-4 shadow-lg">
-        <div className="mb-3 space-y-1 text-sm">
-          <div className="flex justify-between text-gray-500">
-            <span>Item total</span>
-            <span className="line-through">₹{originalTotal}</span>
-          </div>
-
-          <div className="flex justify-between font-medium text-green-600">
-            <span>Just for you</span>
-            <span>₹{discountedTotal}</span>
-          </div>
-
-          {savings > 0 && (
-            <div className="flex justify-between text-xs text-green-600">
-              <span>You saved</span>
-              <span>₹{savings}</span>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={handlePlaceOrder}
-          disabled={submitting}
-          className="w-full cursor-pointer rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
-        >
-          {submitting
-            ? "Placing order..."
-            : `Place Order • ₹${discountedTotal}`}
-        </button>
-      </div>
-    </div>
+    <TabletCheckoutLayout
+      merchantId={merchantId}
+      restaurantName={restaurantName}
+      tableName={tableName}
+      itemCount={checkout.reduce((s, i) => s + i.itemCount, 0)}
+      discountedTotal={discountedTotal}
+      originalTotal={originalTotal}
+      savings={savings}
+      submitting={submitting}
+      onPlaceOrder={handlePlaceOrder}
+    >
+      {checkout.map((item) => (
+        <CheckOutItem key={String(item._id)} item={item} />
+      ))}
+    </TabletCheckoutLayout>
   )
 }
 
