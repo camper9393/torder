@@ -19,6 +19,7 @@ import React from "react"
 import { getApi } from "@/utils/common"
 import { GET_DASHBOARD_MATRICES } from "@/utils/APIConstant"
 import { ApiResponse } from "@/utils/api"
+import { formatPrice } from "@/utils/currency"
 
 
 function GlassCard({
@@ -66,7 +67,7 @@ function RevenueCard({ val }: {
     return (
         <GlassCard gradient="bg-gradient-to-br from-emerald-600 to-emerald-500">
             <Header title="Revenue" icon={<IndianRupee />} />
-            <Metric value={`₹${val?.totalSum || 0}`} trend={val?.thisMonthSails ? `+${val?.thisMonthSails} this month` : ""} accent="yellow" />
+            <Metric value={formatPrice(val?.totalSum || 0)} trend={val?.thisMonthSails ? `+${val?.thisMonthSails} this month` : ""} accent="yellow" />
         </GlassCard>
     )
 }

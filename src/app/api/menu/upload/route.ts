@@ -2,6 +2,10 @@ import { verifyAuth } from "@/middleware/auth";
 import { Menu } from "@/model/menu";
 import { uploadToCloudinary } from "@/service/cloudnary";
 import { sendRJResponse } from "@/utils/api";
+import {
+  menuBodyToDbSet,
+  parseMenuBodyFromFormData,
+} from "@/utils/menuApiPayload";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -17,26 +21,22 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-
     const file = formData.get("image") as File | null;
-    const title = String(formData.get("title") || "").trim();
-    const section = String(formData.get("section") || "").trim();
 
-    const priceRaw = formData.get("price");
-    const originalPriceRaw = formData.get("originalPrice");
-    const quantity = Number(formData.get("quantity"));
-
-    const price = Number(priceRaw);
-    const originalPrice =
-      originalPriceRaw !== null && originalPriceRaw !== ""
-        ? Number(originalPriceRaw)
-        : undefined;
-
-    if (!file || !title || !section || isNaN(price)) {
+    const { body, error } = parseMenuBodyFromFormData(formData);
+    if (error || !body) {
       return sendRJResponse({
         success: false,
         status: 400,
-        message: "Invalid input data",
+        message: error ?? "Invalid input data",
+      });
+    }
+
+    if (!file) {
+      return sendRJResponse({
+        success: false,
+        status: 400,
+        message: "Image is required",
       });
     }
 
@@ -64,14 +64,17 @@ export async function POST(req: NextRequest) {
       `qr-menu/${merchantId}`
     );
 
+    const quantityRaw = formData.get("quantity");
+    const quantity =
+      quantityRaw !== null && quantityRaw !== ""
+        ? Number(quantityRaw)
+        : 0;
+
     const menu = await Menu.create({
       merchantId,
       image: imageUrl,
-      title,
-      price,
-      originalPrice,
-      section,
-      quantity
+      quantity,
+      ...menuBodyToDbSet(body),
     });
 
     return sendRJResponse({

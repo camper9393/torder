@@ -7,12 +7,16 @@ interface GenerateQRProps {
   id?: string
   value?: string
   maxSize?: number
+  scanLabel?: string
+  showUrl?: boolean
 }
 
 const GenerateQR: React.FC<GenerateQRProps> = ({
   id,
   value = "dev",
   maxSize = 280,
+  scanLabel = "Scan to view menu",
+  showUrl = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [qrSize, setQrSize] = useState(maxSize)
@@ -46,11 +50,11 @@ const GenerateQR: React.FC<GenerateQRProps> = ({
         {/* label */}
         <div className="mt-4 text-center">
           <p className="text-sm sm:text-base font-semibold text-gray-900">
-            Scan to view menu
+            {scanLabel}
           </p>
-          <p className="mt-1 text-xs text-gray-500 break-all">
-            {qrUrl}
-          </p>
+          {showUrl && (
+            <p className="mt-1 text-xs text-gray-500 break-all">{qrUrl}</p>
+          )}
         </div>
       </div>
     </div>

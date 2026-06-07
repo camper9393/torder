@@ -1,26 +1,25 @@
 "use client"
 
 import React from "react"
-import { Globe } from "lucide-react"
+import Image from "next/image"
 import { formatTableLabel, getSessionOrderNumber } from "@/utils/tabletSession"
-import { tabletCopy, TabletLocale } from "./tabletUi"
+import { useLocale } from "@/context/LocaleContext"
+import LanguageSwitcher from "@/components/common/LanguageSwitcher"
+import { PAPER_MENU_ASSETS } from "./paperMenuAssets"
+import { PAPER_GOLD, PAPER_GOLD_DIM, PAPER_GOLD_LIGHT } from "./tabletUi"
 
 type TabletHeaderProps = {
   restaurantName: string
   tableName: string
   merchantId: string
-  locale: TabletLocale
-  onToggleLocale: () => void
 }
 
 function TabletHeader({
   restaurantName,
   tableName,
   merchantId,
-  locale,
-  onToggleLocale,
 }: TabletHeaderProps) {
-  const copy = tabletCopy[locale]
+  const { t, locale } = useLocale()
   const [orderNo, setOrderNo] = React.useState(1)
 
   React.useEffect(() => {
@@ -40,42 +39,61 @@ function TabletHeader({
     }
   }, [merchantId])
 
-  const initial = restaurantName.charAt(0).toUpperCase()
-
   return (
-    <header className="sticky top-0 z-30 flex h-[4.25rem] shrink-0 items-center gap-3 border-b border-[#d4ddf0] bg-white px-4 shadow-sm">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-[#c9a227]/30 bg-[#121110]/95 backdrop-blur-md">
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white shadow-md"
-        style={{ background: "linear-gradient(135deg, #1E5EFF 0%, #1548D4 100%)" }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-3 opacity-60"
+        style={{
+          backgroundImage: `url(${PAPER_MENU_ASSETS.waveBorder})`,
+          backgroundSize: "auto 100%",
+          backgroundRepeat: "repeat-x",
+        }}
         aria-hidden
-      >
-        {initial}
-      </div>
+      />
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-bold text-gray-900">{restaurantName}</p>
-        <p className="text-xs font-semibold tracking-wide text-[#1E5EFF]">
-          {formatTableLabel(tableName)}
-        </p>
-      </div>
+      <div className="relative flex items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
+        <LanguageSwitcher
+          compact
+          variant="paper"
+          className="shrink-0 border-[#c9a227]/40 bg-[#1c1916]/90"
+        />
 
-      <div className="hidden shrink-0 text-right sm:block">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
-          {copy.orderNo}
-        </p>
-        <p className="text-sm font-bold text-gray-800">
-          #{String(orderNo).padStart(3, "0")}
-        </p>
-      </div>
+        <div className="flex min-w-0 flex-1 flex-col items-center">
+          <div className="relative h-14 w-36 sm:h-16 sm:w-44">
+            <Image
+              src={PAPER_MENU_ASSETS.logo}
+              alt={restaurantName}
+              fill
+              className="object-contain object-center drop-shadow-lg"
+              priority
+            />
+          </div>
+          <p
+            className="mt-0.5 truncate text-center text-[10px] font-medium tracking-wide sm:text-xs"
+            style={{ color: PAPER_GOLD_DIM }}
+          >
+            {restaurantName}
+          </p>
+        </div>
 
-      <button
-        type="button"
-        onClick={onToggleLocale}
-        className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full border border-[#c5d4f5] bg-[#f0f4fc] px-3 text-xs font-semibold text-[#1E5EFF] touch-manipulation active:scale-95"
-      >
-        <Globe className="h-4 w-4" aria-hidden />
-        <span>{copy.language}</span>
-      </button>
+        <div className="shrink-0 text-right">
+          <p
+            className="text-[10px] font-semibold uppercase tracking-wider"
+            style={{ color: PAPER_GOLD_DIM }}
+          >
+            {t.tablet.orderNo}
+          </p>
+          <p className="text-sm font-bold" style={{ color: PAPER_GOLD_LIGHT }}>
+            #{String(orderNo).padStart(3, "0")}
+          </p>
+          <p
+            className="mt-0.5 text-xs font-semibold"
+            style={{ color: PAPER_GOLD }}
+          >
+            {formatTableLabel(tableName, locale)}
+          </p>
+        </div>
+      </div>
     </header>
   )
 }

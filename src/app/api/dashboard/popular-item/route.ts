@@ -2,7 +2,7 @@ import { verifyAuth } from "@/middleware/auth";
 import { sendRJResponse } from "@/utils/api";
 import { Types } from "mongoose";
 import { NextRequest } from "next/server"
-import { getMostOrderedItem } from "../matrices/route";
+import { getMostOrderedItem } from "@/utils/dashboardMostOrderedItem";
 
 export async function GET(req: NextRequest) {
     try {

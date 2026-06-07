@@ -1,6 +1,7 @@
 import { verifyAuth } from "@/middleware/auth";
-import { MQR } from "@/model/qrs";
 import { sendRJResponse } from "@/utils/api";
+import { loadMerchantTableQrList } from "@/utils/merchantTableCatalog";
+import { Types } from "mongoose";
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -15,9 +16,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const qrs = await MQR.find({ merchantId })
-      .sort({ createdAt: -1 }) 
-      .lean();
+    const qrs = await loadMerchantTableQrList(new Types.ObjectId(String(merchantId)));
 
     return sendRJResponse({
       success: true,

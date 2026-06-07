@@ -1,3 +1,6 @@
+import { getMessages } from "@/utils/i18n"
+import { Locale } from "@/utils/i18n/types"
+
 const orderKey = (merchantId: string) => `tablet-order-no-${merchantId}`
 
 export function getSessionOrderNumber(merchantId: string): number {
@@ -16,9 +19,10 @@ export function bumpSessionOrderNumber(merchantId: string): void {
   )
 }
 
-export function formatTableLabel(tableName: string): string {
+export function formatTableLabel(tableName: string, locale: Locale = "mn"): string {
+  const prefix = getMessages(locale).common.tablePrefix
   const trimmed = tableName.trim()
   const numeric = /^\d+$/.test(trimmed)
   const display = numeric ? trimmed.padStart(2, "0") : trimmed.toUpperCase()
-  return `TABLE ${display}`
+  return `${prefix} ${display}`
 }

@@ -3,8 +3,10 @@
 import React from "react"
 import { Maximize2, Minimize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLocale } from "@/context/LocaleContext"
 
 function FullscreenButton({ className }: { className?: string }) {
+  const { t } = useLocale()
   const [isFullscreen, setIsFullscreen] = React.useState(false)
 
   React.useEffect(() => {
@@ -47,7 +49,7 @@ function FullscreenButton({ className }: { className?: string }) {
         await request()
       }
     } catch {
-      // User cancelled or browser blocked fullscreen
+      // cancelled
     }
   }
 
@@ -62,11 +64,11 @@ function FullscreenButton({ className }: { className?: string }) {
       )}
     >
       {isFullscreen ? (
-        <Minimize2 className="h-4 w-4 shrink-0 text-[#1E5EFF]" aria-hidden />
+        <Minimize2 className="h-4 w-4 shrink-0 text-current" aria-hidden />
       ) : (
-        <Maximize2 className="h-4 w-4 shrink-0 text-[#1E5EFF]" aria-hidden />
+        <Maximize2 className="h-4 w-4 shrink-0 text-current" aria-hidden />
       )}
-      <span>{isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}</span>
+      <span>{isFullscreen ? t.tablet.exitFullscreen : t.tablet.enterFullscreen}</span>
     </button>
   )
 }

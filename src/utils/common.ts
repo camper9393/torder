@@ -3,7 +3,7 @@ import { defaultAxios } from "./axios";
 type ApiRequest = {
     url: string,
     param?: Record<string, string | number>,
-    values?: Record<string, string | number| undefined> | FormData
+    values?: Record<string, unknown> | FormData
 }
 
 const handleApiError = (err: any) => {
@@ -26,7 +26,7 @@ export const getApi = async <T>({
             })
             apiUrl += `?${queryString.toString()}`
         }
-        const response = await defaultAxios.get<T>(url)
+        const response = await defaultAxios.get<T>(apiUrl)
         return response.data
     } catch (err) {
         return handleApiError(err)
@@ -45,12 +45,30 @@ export const postApi = async <T>({
     }
 }
 
+export const putApi = async <T>({
+    url,
+    values
+}: ApiRequest): Promise<T | undefined> => {
+    try {
+        const response = await defaultAxios.put<T>(url, values, {
+            headers: { "Content-Type": "application/json" },
+        })
+        return response.data
+    } catch (err) {
+        return handleApiError(err)
+    }
+}
+
 export const patchApi = async <T>({
     url,
     values
 }: ApiRequest): Promise<T | undefined> => {
     try {
-        const response = await defaultAxios.patch<T>(url,values)
+        const config =
+            values instanceof FormData
+                ? {}
+                : { headers: { "Content-Type": "application/json" } }
+        const response = await defaultAxios.patch<T>(url, values, config)
         return response.data
     } catch (err) {
         return handleApiError(err)

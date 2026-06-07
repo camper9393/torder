@@ -1,6 +1,6 @@
 import { AppUrl } from "@/utils/constants"
 
-export const UNKNOWN_TABLE = "Unknown Table"
+export const UNKNOWN_TABLE = "Тодорхойгүй ширээ"
 
 export function normalizeTableName(raw: string | null | undefined): string {
   const trimmed = raw?.trim()

@@ -18,7 +18,9 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { parseTableFromSearchParam } from "@/utils/table"
 import { bumpSessionOrderNumber } from "@/utils/tabletSession"
 import FullscreenButton from "@/components/MenuInterface/FullscreenButton"
-import { tabletCopy, TABLET_BG } from "@/components/MenuInterface/tablet/tabletUi"
+import { PaperMenuShell } from "@/components/MenuInterface/tablet/PaperMenuShell"
+import { useLocale } from "@/context/LocaleContext"
+import { mapCheckoutItemToOrderPayload } from "@/utils/orderLineMapping"
 
 type ConsumerMenuPayload = {
   menu: unknown[]
@@ -38,7 +40,8 @@ function CheckoutPage({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [submitting, setSubmitting] = React.useState(false)
-  const [restaurantName, setRestaurantName] = React.useState("Restaurant")
+  const { t } = useLocale()
+  const [restaurantName, setRestaurantName] = React.useState("")
 
   React.useEffect(() => {
     const fromUrl = parseTableFromSearchParam(searchParams.get("table"))
@@ -51,7 +54,7 @@ function CheckoutPage({
         url: CONSUMER_MENU + `?merchantId=${merchantId}`,
       })
       if (res?.success && res.data && !Array.isArray(res.data)) {
-        setRestaurantName(res.data.restaurantName ?? "Restaurant")
+        setRestaurantName(res.data.restaurantName ?? t.common.restaurant)
       }
     }
     loadRestaurant()
@@ -72,7 +75,7 @@ function CheckoutPage({
       values: {
         merchantId,
         tableName,
-        items: checkout,
+        items: checkout.map(mapCheckoutItemToOrderPayload),
         total,
       },
     })
@@ -80,13 +83,13 @@ function CheckoutPage({
     setSubmitting(false)
 
     if (!res?.success) {
-      toast.error(res?.message || "Could not place order")
+      toast.error(res?.message || t.tablet.couldNotPlaceOrder)
       return
     }
 
     bumpSessionOrderNumber(merchantId)
     dispatch(clearCheckout())
-    toast.success(`Order sent to kitchen — ${tableName}`)
+    toast.success(`${t.tablet.orderSent} — ${tableName}`)
     router.push(
       `/consumer/${merchantId}?table=${encodeURIComponent(tableName)}`
     )
@@ -100,20 +103,17 @@ function CheckoutPage({
 
   if (checkout.length === 0) {
     return (
-      <div
-        className="flex min-h-screen flex-col items-center justify-center px-6 pb-28"
-        style={{ backgroundColor: TABLET_BG }}
-      >
-        <FullscreenButton className="!top-4 !right-3" />
-        <p className="text-center text-gray-600">{tabletCopy.en.emptyCart}</p>
+      <PaperMenuShell className="flex flex-col items-center justify-center px-6 pb-28">
+        <FullscreenButton className="!top-4 !right-3 !border-[#c9a227]/40 !bg-[#1c1916]/95 !text-[#e8d4a8]" />
+        <p className="text-center text-[#8a7344]">{t.tablet.emptyCart}</p>
         <button
           type="button"
           onClick={() => router.push(`/consumer/${merchantId}${tableQuery}`)}
-          className="mt-6 min-h-12 rounded-2xl bg-[#1E5EFF] px-8 text-sm font-bold text-white touch-manipulation"
+          className="mt-6 min-h-12 rounded-2xl border border-[#c9a227] bg-gradient-to-b from-[#c9a227] to-[#8a7344] px-8 text-sm font-bold text-[#121110] touch-manipulation"
         >
-          {tabletCopy.en.backToMenu}
+          {t.tablet.backToMenu}
         </button>
-      </div>
+      </PaperMenuShell>
     )
   }
 
@@ -133,9 +133,8 @@ function CheckoutPage({
   return (
     <TabletCheckoutLayout
       merchantId={merchantId}
-      restaurantName={restaurantName}
+      restaurantName={restaurantName || t.common.restaurant}
       tableName={tableName}
-      itemCount={checkout.reduce((s, i) => s + i.itemCount, 0)}
       discountedTotal={discountedTotal}
       originalTotal={originalTotal}
       savings={savings}
@@ -143,7 +142,7 @@ function CheckoutPage({
       onPlaceOrder={handlePlaceOrder}
     >
       {checkout.map((item) => (
-        <CheckOutItem key={String(item._id)} item={item} />
+        <CheckOutItem key={String(item._id)} item={item} paper />
       ))}
     </TabletCheckoutLayout>
   )

@@ -2,6 +2,7 @@
 
 import { FileBox } from 'lucide-react'
 import React from 'react'
+import SidebarMenuToggle from '@/components/layout/SidebarMenuToggle'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import Tooltip from '../common/Tooltip'
 import { getApi } from '@/utils/common'
@@ -165,7 +166,10 @@ function index() {
     return (
         <div className='w-full h-full'>
             <div className='flex justify-between items-center'>
-                <h2 className='text-xl font-bold font-serif'>Order <span className='text-transparent bg-linear-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text'>'s</span></h2>
+                <div className="flex min-w-0 items-center gap-2">
+                    <SidebarMenuToggle />
+                    <h2 className='text-xl font-bold font-serif'>Order <span className='text-transparent bg-linear-to-r from-blue-600 via-cyan-500 to-blue-500 bg-clip-text'>'s</span></h2>
+                </div>
                 <div onClick={exportItasPdf} className='flex cursor-pointer items-center gap-1 px-2 py-1 rounded-full bg-orange-300/25 hover:bg-orange-400/25 transition-all duration-150 ease-in border border-orange-300'>
                     <FileBox size={16} />
                     <span >Export As PDF</span>

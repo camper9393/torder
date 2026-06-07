@@ -3,12 +3,17 @@ import { IMenu } from "@/types/menu"
 import { ApiResponse } from "@/utils/api";
 import { GET_CART, POST_ITEM_CART } from "@/utils/APIConstant";
 import { UNKNOWN_TABLE, normalizeTableName } from "@/utils/table";
+import { checkoutLineKey } from "@/utils/menuBilingual";
 import { getApi, postApi } from "@/utils/common";
 import { createAsyncThunk, createSlice, Dispatch, PayloadAction } from "@reduxjs/toolkit"
 import { RootState } from "@/store/store"
 
-export interface CheckOutItems extends IMenu {
+/** Cart line: menu stock `quantity` is omitted; use `itemCount` for cart qty. */
+export interface CheckOutItems extends Omit<IMenu, "quantity"> {
   itemCount: number
+  cartLineKey: string
+  selectedSizeLabelMn?: string
+  selectedSizeLabelEn?: string
 }
 
 export interface CheckoutState {
@@ -62,48 +67,61 @@ const checkOutSlice = createSlice({
       state.tableName = normalizeTableName(action.payload);
     },
 
-    addCheckOutItem: (state, action: PayloadAction<IMenu>) => {
-      const item = state.items.find(i => i._id === action.payload._id)
+    addCheckOutItem: (state, action: PayloadAction<CheckOutItems>) => {
+      const key = checkoutLineKey(action.payload)
+      const addQty = Math.max(1, action.payload.itemCount ?? 1)
+      const existing = state.items.find((i) => checkoutLineKey(i) === key)
 
-      if (item) {
-        item.itemCount += 1
+      if (existing) {
+        existing.itemCount += addQty
       } else {
         state.items.push({
           ...action.payload,
-          itemCount: 1,
+          cartLineKey: key,
+          itemCount: addQty,
         })
       }
     },
 
     removeCheckItem: (state, action: PayloadAction<string>) => {
-      state.items = state.items.filter(item => String(item._id) !== action.payload)
+      state.items = state.items.filter(
+        (item) => checkoutLineKey(item) !== action.payload
+      )
     },
 
     incrementCheckOutItem: (state, action: PayloadAction<string>) => {
-      const item = state.items.find(i => String(i._id) === action.payload)
+      const item = state.items.find(
+        (i) => checkoutLineKey(i) === action.payload
+      )
       if (item) {
         item.itemCount += 1
       }
     },
 
     decrementCheckOutItem: (state, action: PayloadAction<string>) => {
-      const item = state.items.find(i => String(i._id) === action.payload)
+      const item = state.items.find(
+        (i) => checkoutLineKey(i) === action.payload
+      )
       if (!item) return
 
       if (item.itemCount > 1) {
         item.itemCount -= 1
       } else {
-        state.items = state.items.filter(i => String(i._id) !== action.payload)
+        state.items = state.items.filter(
+          (i) => checkoutLineKey(i) !== action.payload
+        )
       }
     },
 
     updateCheckOutQuantity: (
       state,
-      action: PayloadAction<{ id: string; quantity: number }>
+      action: PayloadAction<{ cartLineKey: string; quantity: number }>
     ) => {
-      const item = state.items.find(i => String(i._id) === action.payload.id)
+      const item = state.items.find(
+        (i) => checkoutLineKey(i) === action.payload.cartLineKey
+      )
       if (item) {
-        item.quantity = action.payload.quantity
+        item.itemCount = action.payload.quantity
       }
     },
 
@@ -112,7 +130,10 @@ const checkOutSlice = createSlice({
     },
 
     setCheckout: (state, action: PayloadAction<CheckOutItems[]>) => {
-      state.items = action.payload
+      state.items = action.payload.map((item) => ({
+        ...item,
+        cartLineKey: item.cartLineKey ?? checkoutLineKey(item),
+      }))
     },
   },
 })

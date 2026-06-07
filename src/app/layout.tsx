@@ -2,8 +2,10 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import NavBar from "@/components/common/NavBar"
+import AppChrome from "@/components/layout/AppChrome"
 import { Toaster } from "react-hot-toast"
 import { ReduxProvider } from "@/context/redux"
+import LocaleProvider from "@/context/LocaleProvider"
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,13 +32,13 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col`}
       >
         <ReduxProvider>
-          <NavBar />
+          <LocaleProvider>
+            <NavBar />
 
-          <main className="flex-1">
-            {children}
-          </main>
+            <AppChrome>{children}</AppChrome>
 
-          <Toaster />
+            <Toaster />
+          </LocaleProvider>
         </ReduxProvider>
       </body>
     </html>

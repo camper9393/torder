@@ -1,4 +1,6 @@
 import { KitchenOrder } from "@/types/kitchenOrder"
+import { getMessages, localeToDateLocale } from "@/utils/i18n"
+import { Locale } from "@/utils/i18n/types"
 
 export type HistorySection = {
   id: string
@@ -21,7 +23,12 @@ export function filterOrdersToday(orders: KitchenOrder[]): KitchenOrder[] {
   return orders.filter((order) => isSameDay(new Date(order.createdAt), today))
 }
 
-export function groupOrdersForHistory(orders: KitchenOrder[]): HistorySection[] {
+export function groupOrdersForHistory(
+  orders: KitchenOrder[],
+  locale: Locale = "mn"
+): HistorySection[] {
+  const labels = getMessages(locale).common
+  const dateLocale = localeToDateLocale(locale)
   const now = new Date()
   const today = startOfDay(now)
   const yesterday = new Date(today)
@@ -54,13 +61,13 @@ export function groupOrdersForHistory(orders: KitchenOrder[]): HistorySection[] 
   const sections: HistorySection[] = []
 
   if (todayOrders.length > 0) {
-    sections.push({ id: "today", label: "Today", orders: todayOrders })
+    sections.push({ id: "today", label: labels.today, orders: todayOrders })
   }
 
   if (yesterdayOrders.length > 0) {
     sections.push({
       id: "yesterday",
-      label: "Yesterday",
+      label: labels.yesterday,
       orders: yesterdayOrders,
     })
   }
@@ -70,7 +77,7 @@ export function groupOrdersForHistory(orders: KitchenOrder[]): HistorySection[] 
   )
 
   for (const dateKey of olderKeys) {
-    const label = new Date(dateKey + "T12:00:00").toLocaleDateString(undefined, {
+    const label = new Date(dateKey + "T12:00:00").toLocaleDateString(dateLocale, {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -86,10 +93,11 @@ export function groupOrdersForHistory(orders: KitchenOrder[]): HistorySection[] 
   return sections
 }
 
-/** @deprecated Use groupOrdersForHistory */
 export type OrderDateGroup = HistorySection
 
-/** @deprecated Use groupOrdersForHistory */
-export function groupOrdersByDate(orders: KitchenOrder[]): HistorySection[] {
-  return groupOrdersForHistory(orders)
+export function groupOrdersByDate(
+  orders: KitchenOrder[],
+  locale: Locale = "mn"
+): HistorySection[] {
+  return groupOrdersForHistory(orders, locale)
 }

@@ -8,12 +8,8 @@ import { WaiterCallStatus } from "@/model/waiterCall"
 import toast from "react-hot-toast"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
-
-const statusLabel: Record<WaiterCallStatus, string> = {
-  new: "New",
-  accepted: "Accepted",
-  done: "Done",
-}
+import { labelOrderStatus } from "@/utils/i18n/orderStatus"
+import { useLocale } from "@/context/LocaleContext"
 
 const statusColor: Record<WaiterCallStatus, string> = {
   new: "bg-rose-100 text-rose-800",
@@ -27,6 +23,9 @@ type WaiterCallAlertsProps = {
 }
 
 function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
+  const { t, locale, dateLocale } = useLocale()
+  const k = t.kitchen
+
   const updateStatus = async (id: string, status: WaiterCallStatus) => {
     const res = await patchApi<ApiResponse<WaiterCallRecord>>({
       url: `${PATCH_WAITER_CALL}/${id}`,
@@ -34,11 +33,11 @@ function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
     })
 
     if (!res?.success) {
-      toast.error(res?.message || "Could not update waiter call")
+      toast.error(res?.message || k.couldNotUpdateWaiter)
       return
     }
 
-    toast.success(`Waiter call ${statusLabel[status].toLowerCase()}`)
+    toast.success(k.waiterCallUpdated(labelOrderStatus(status, locale)))
     onUpdated()
   }
 
@@ -47,7 +46,7 @@ function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
   return (
     <section className="mb-8">
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-rose-700">
-        Staff calls
+        {k.staffCalls}
       </h2>
       <div className="flex flex-col gap-3">
         {calls.map((call) => (
@@ -57,14 +56,14 @@ function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
           >
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-base font-semibold text-gray-900">
-                🔔 {call.tableName} is calling staff
+                {k.callingStaff(call.tableName)}
               </p>
               <Badge className={statusColor[call.status]}>
-                {statusLabel[call.status]}
+                {labelOrderStatus(call.status, locale)}
               </Badge>
             </div>
             <p className="mb-3 text-xs text-gray-500">
-              {new Date(call.createdAt).toLocaleString()}
+              {new Date(call.createdAt).toLocaleString(dateLocale)}
             </p>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -74,7 +73,7 @@ function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
                 onClick={() => updateStatus(call._id, "accepted")}
                 className="border-blue-600 text-blue-700 hover:bg-blue-50"
               >
-                Accept
+                {k.accept}
               </Button>
               <Button
                 size="sm"
@@ -82,7 +81,7 @@ function WaiterCallAlerts({ calls, onUpdated }: WaiterCallAlertsProps) {
                 onClick={() => updateStatus(call._id, "done")}
                 className="bg-green-600 text-white hover:bg-green-700"
               >
-                Done
+                {k.done}
               </Button>
             </div>
           </article>

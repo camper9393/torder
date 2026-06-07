@@ -10,17 +10,21 @@ import toast from "react-hot-toast"
 import { useDropzone } from "react-dropzone"
 import { postApi } from "@/utils/common"
 import { ADD_MENU_ITEM } from "@/utils/APIConstant"
+import { formatPrice } from "@/utils/currency"
+import { SpicyLevelSelector } from "./SpicyLevelSelector"
+import { SpicyMenuBadge } from "@/components/MenuInterface/SpicyMenuBadge"
 
 interface NewMenuItemInput {
   image: string
   title: string
   price: number
   originalPrice?: number
-  quantity: number;
+  quantity: number
+  spicyLevel?: number
 }
 
 interface MenuCardDefaultProps {
-  onDone: (data: NewMenuItemInput) => void
+  onDone: (data: NewMenuItemInput & Partial<IMenu>) => void
   section: string
 }
 
@@ -38,6 +42,7 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
   const [originalPrice, setOriginalPrice] = useState<number | undefined>(699)
   const [uploading, setUploading] = React.useState<boolean>(false);
   const [quantity, setQuantity] = React.useState<number>(0)
+  const [spicyLevel, setSpicyLevel] = React.useState(0)
 
   const [editing, setEditing] = useState({
     title: false,
@@ -84,7 +89,8 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
       formData.append("price", String(price))
       formData.append("originalPrice", String(originalPrice))
       formData.append("section", section)
-      formData.append("quantity", String(quantity));
+      formData.append("quantity", String(quantity))
+      formData.append("spicyLevel", String(spicyLevel))
 
       const res = await postApi<ApiResponse<IMenu>>({
         url: ADD_MENU_ITEM,
@@ -119,6 +125,8 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
     setTitle("Name of your food")
     setPrice(449)
     setOriginalPrice(699)
+    setQuantity(0)
+    setSpicyLevel(0)
   }
 
   return (
@@ -138,6 +146,8 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
+        <SpicyMenuBadge level={spicyLevel} className="!top-2 !left-2" />
 
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition">
           <div className="flex items-center gap-2 rounded-full bg-white/90 px-4 py-2 text-sm font-medium">
@@ -209,7 +219,7 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
               onClick={() => setEditing((p) => ({ ...p, price: true }))}
               className="cursor-pointer text-lg font-bold text-gray-900"
             >
-              ₹{price}
+              {formatPrice(price)}
             </span>
           )}
 
@@ -232,10 +242,16 @@ const MenuCardDefault: React.FC<MenuCardDefaultProps> = ({ onDone, section }) =>
                 }
                 className="cursor-pointer text-xs text-gray-500 line-through"
               >
-                ₹{originalPrice}
+                {formatPrice(originalPrice)}
               </span>
             ))}
         </div>
+
+        <SpicyLevelSelector
+          value={spicyLevel}
+          onChange={setSpicyLevel}
+          disabled={uploading}
+        />
 
         <button
           onClick={handleAddItem}

@@ -7,10 +7,19 @@ import {
   syncCartWithDB,
 } from "@/store/reducer/checkout"
 import { IMenu } from "@/types/menu"
+import { formatPrice } from "@/utils/currency"
+import { useLocale } from "@/context/LocaleContext"
 import Image from "next/image"
 import React from "react"
+import { SpicyMenuBadge } from "@/components/MenuInterface/SpicyMenuBadge"
+import { normalizeSpicyLevel } from "@/utils/menuSpicy"
+import {
+  buildCheckoutLineFromMenu,
+  normalizeMenuDocument,
+} from "@/utils/menuBilingual"
 
 function MenuItem({ item }: { item: IMenu }) {
+  const { t } = useLocale()
   const dispatch = useAppDispatch()
 
   const checkout = useAppSelector((state) => state.checkOut.items)
@@ -19,16 +28,16 @@ function MenuItem({ item }: { item: IMenu }) {
 
   const qty = checkoutItem?.itemCount ?? 0
 
-  const discount =
-    item.originalPrice && item.originalPrice > item.price
-      ? Math.round(
-          ((item.originalPrice - item.price) / item.originalPrice) * 100
-        )
-      : null
-
   const handleUpdate = (newQty: number) => {
     if (newQty > qty) {
-      dispatch(addCheckOutItem(item))
+      const line = buildCheckoutLineFromMenu(normalizeMenuDocument(item))
+      dispatch(
+        addCheckOutItem({
+          ...line,
+          itemCount: 1,
+          cartLineKey: line.cartLineKey,
+        })
+      )
     } else {
       dispatch(decrementCheckOutItem(String(item._id)))
     }
@@ -49,11 +58,10 @@ function MenuItem({ item }: { item: IMenu }) {
           className="object-cover"
         />
 
-        {discount && (
-          <span className="absolute top-1 left-1 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 px-3 py-1 text-xs font-semibold text-white">
-            {discount}% OFF
-          </span>
-        )}
+        <SpicyMenuBadge
+          level={normalizeSpicyLevel(item.spicyLevel, item.spicy)}
+          className="!top-1 !left-1"
+        />
       </div>
 
       <div className="mt-2 space-y-1">
@@ -61,17 +69,19 @@ function MenuItem({ item }: { item: IMenu }) {
           {item.title}
         </h3>
 
-        <p className="text-xs text-gray-500">1 pc • {item.quantity} g</p>
+        {item.quantity > 0 ? (
+          <p className="text-xs text-gray-500">{t.tablet.pcWeight(item.quantity)}</p>
+        ) : null}
 
         <div className="mt-2 flex items-center justify-between">
           <div className="flex flex-col">
             {item.originalPrice && (
               <span className="text-xs line-through text-gray-500">
-                ₹{item.originalPrice}
+                {formatPrice(item.originalPrice)}
               </span>
             )}
             <span className="text-sm font-semibold text-gray-900">
-              ₹{item.price}
+              {formatPrice(item.price)}
             </span>
           </div>
 
@@ -80,7 +90,7 @@ function MenuItem({ item }: { item: IMenu }) {
               onClick={() => handleUpdate(1)}
               className="rounded-lg border border-green-600 px-3 py-1 text-xs font-semibold text-green-600 hover:bg-green-50"
             >
-              ADD
+              {t.tablet.add}
             </button>
           ) : (
             <div className="flex items-center gap-3 rounded-lg border border-green-600 px-2 py-1 text-green-600">

@@ -11,30 +11,28 @@ import { IROLE } from "@/types/role"
 import { postApi } from "@/utils/common"
 import { LOGOUT } from "@/utils/APIConstant"
 import { usePathname } from "next/navigation"
-import { isConsumerTabletRoute } from "@/utils/routes"
+import { hidesSiteNavBar } from "@/utils/routes"
+import { useLocale } from "@/context/LocaleContext"
+import LanguageSwitcher from "@/components/common/LanguageSwitcher"
 
 function NavBar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [mounted, setMounted] = React.useState(false)
-  const user = useAppSelector(state => state.merchant).merchant
+  const user = useAppSelector((state) => state.merchant).merchant
+  const { t } = useLocale()
+  const n = t.nav
 
   React.useEffect(() => setMounted(true), [])
 
-  if (isConsumerTabletRoute(pathname)) {
+  if (hidesSiteNavBar(pathname)) {
     return null
   }
 
-  const links = [
-    { name: "Home", href: "/" },
-    { name: "Kitchen", href: "/kitchen" },
-    { name: "Contact", href: "/" }
-  ]
-
   const handleLogOut = async () => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return
     await postApi({
-      url: LOGOUT
+      url: LOGOUT,
     })
     window.location.href = "/"
   }
@@ -43,48 +41,44 @@ function NavBar() {
     <header className="fixed top-0 z-50 w-full border-b bg-white/70 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-
           <Link href="/" className="text-xl font-bold tracking-tight">
             <span className="text-[#A18D6D]">QR</span>Menu
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            {links.map(link => (
-              <Link
-                key={link.name}
-                href={link.href}
-                className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
-              >
-                {link.name}
-              </Link>
-            ))}
-
-            {mounted && user && user.role === "MERCHANT" &&
+          <div className="hidden items-center gap-4 md:flex">
+            {mounted && user && user.role === IROLE.MERCHANT && (
               <Link
                 href={`/dashboard/${user._id}?uid=${user.uid}`}
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
               >
-                Dashboard
-              </Link>}
+                {n.dashboard}
+              </Link>
+            )}
 
-              {mounted && user && user.role === "CONSUMER" &&
+            {mounted && user && user.role === "CONSUMER" && (
               <Link
                 href={`/detail/${user._id}`}
                 className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
               >
-                Transections
-              </Link>}
+                {n.transactions}
+              </Link>
+            )}
 
-              {mounted && user && (
-                <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
-                  LogOut
-                </button>
-              )}
+            {mounted && user && (
+              <button
+                type="button"
+                onClick={handleLogOut}
+                className="cursor-pointer text-sm font-medium text-gray-600 transition-colors hover:text-black"
+              >
+                {n.logout}
+              </button>
+            )}
 
-          </nav>
+            <LanguageSwitcher compact />
+          </div>
 
-          <div className="flex items-center gap-4">
-
+          <div className="flex items-center gap-3 md:hidden">
+            <LanguageSwitcher compact />
             <Avatar className="h-9 w-9 cursor-pointer">
               <AvatarImage src="https://github.com/shadcn.png" />
               <AvatarFallback>TR</AvatarFallback>
@@ -93,8 +87,9 @@ function NavBar() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
               onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              aria-label="Menu"
             >
               {open ? <X /> : <Menu />}
             </Button>
@@ -104,42 +99,43 @@ function NavBar() {
 
       <div
         className={cn(
-          "md:hidden overflow-hidden transition-all duration-300",
-          open ? "max-h-60 border-t" : "max-h-0"
+          "overflow-hidden transition-all duration-300 md:hidden",
+          open ? "max-h-48 border-t" : "max-h-0"
         )}
       >
-        <nav className="flex flex-col px-4 py-4 gap-3 bg-white">
-          {links.map(link => (
+        <nav className="flex flex-col gap-3 bg-white px-4 py-4">
+          {mounted && user && user.role === IROLE.MERCHANT && (
             <Link
-              key={link.name}
-              href={link.href}
+              href={`/dashboard/${user._id}?uid=${user.uid}`}
               onClick={() => setOpen(false)}
               className="text-sm font-medium text-gray-700 hover:text-black"
             >
-              {link.name}
+              {n.dashboard}
             </Link>
-          ))}
-          {mounted && user && user.role === IROLE.MERCHANT &&
-            <Link
-              href={`/dashboard/${user._id}?uid=${user.uid}`}
-              className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
-            >
-              Dashboard
-            </Link>}
+          )}
 
-            {mounted && user && user.role === "CONSUMER" &&
-              <Link
-                href={`/detail/${user._id}`}
-                className="text-sm font-medium text-gray-600 hover:text-black transition-colors"
-              >
-                Transections
-              </Link>}
-              {mounted && user && (
-                <button onClick={handleLogOut} className="text-sm cursor-pointer font-medium text-gray-600 hover:text-black transition-colors">
-                  LogOut
-                </button>
-              )}
-              
+          {mounted && user && user.role === "CONSUMER" && (
+            <Link
+              href={`/detail/${user._id}`}
+              onClick={() => setOpen(false)}
+              className="text-sm font-medium text-gray-700 hover:text-black"
+            >
+              {n.transactions}
+            </Link>
+          )}
+
+          {mounted && user && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                void handleLogOut()
+              }}
+              className="cursor-pointer text-left text-sm font-medium text-gray-700 hover:text-black"
+            >
+              {n.logout}
+            </button>
+          )}
         </nav>
       </div>
     </header>

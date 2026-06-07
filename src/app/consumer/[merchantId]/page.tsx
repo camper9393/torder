@@ -1,6 +1,7 @@
 import React, { Suspense } from "react"
 import MenuInterface from "@/components/MenuInterface"
 import { parseTableFromSearchParam } from "@/utils/table"
+import { ClientMenuLoading } from "@/components/common/ClientLoadingFallback"
 
 async function page({
   params,
@@ -15,7 +16,7 @@ async function page({
   const tableName = parseTableFromSearchParam(sp?.table ?? null)
 
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F8F5F0] pt-24 text-center">Loading menu...</div>}>
+    <Suspense fallback={<ClientMenuLoading />}>
       <MenuInterface merchantId={merchantId} initialTableName={tableName} />
     </Suspense>
   )

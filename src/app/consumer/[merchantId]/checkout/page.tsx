@@ -1,6 +1,7 @@
 import React, { Suspense } from "react"
 import CheckOut from "@/components/Checkout"
 import { parseTableFromSearchParam } from "@/utils/table"
+import { ClientPageLoading } from "@/components/common/ClientLoadingFallback"
 
 async function page({
   params,
@@ -15,7 +16,7 @@ async function page({
   const tableName = parseTableFromSearchParam(sp?.table ?? null)
 
   return (
-    <Suspense fallback={<div className="px-6 pt-20 text-center">Loading...</div>}>
+    <Suspense fallback={<ClientPageLoading />}>
       <CheckOut merchantId={merchantId} initialTableName={tableName} />
     </Suspense>
   )

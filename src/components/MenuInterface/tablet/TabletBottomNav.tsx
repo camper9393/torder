@@ -7,80 +7,155 @@ import {
   Bell,
   Bot,
   ClipboardList,
+  Gift,
+  ShoppingBag,
   ShoppingCart,
   UserRound,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
-import { POST_WAITER_CALL } from "@/utils/APIConstant"
-import { ApiResponse } from "@/utils/api"
-import { postApi } from "@/utils/common"
-import { tabletCopy, TabletLocale } from "./tabletUi"
+import LanguageSwitcher from "@/components/common/LanguageSwitcher"
+import { useLocale } from "@/context/LocaleContext"
+import { useWaiterCallSubmit } from "@/hooks/useWaiterCallSubmit"
+import {
+  TORDER_BOTTOM_BAR_HEIGHT_PX,
+  TORDER_SIDEBAR_WIDTH_PX,
+} from "./tabletUi"
+import { useTabletCartUiOptional } from "./useTabletCartUi"
 
 type TabletBottomNavProps = {
   merchantId: string
-  locale: TabletLocale
   active?: "menu" | "checkout"
+  hideCartOnDesktop?: boolean
+  menuColumnOnlyOnDesktop?: boolean
+  consumerMobileLayer?: boolean
+  variant?: "paper" | "torder"
 }
 
 function TabletBottomNav({
   merchantId,
-  locale,
   active = "menu",
+  hideCartOnDesktop = false,
+  menuColumnOnlyOnDesktop = false,
+  consumerMobileLayer = false,
+  variant = "paper",
 }: TabletBottomNavProps) {
   const router = useRouter()
-  const copy = tabletCopy[locale]
+  const { t } = useLocale()
   const tableName = useAppSelector((state) => state.checkOut.tableName)
   const cartCount = useAppSelector((state) =>
     state.checkOut.items.reduce((sum, i) => sum + i.itemCount, 0)
   )
 
-  const tableQuery = `?table=${encodeURIComponent(tableName)}`
+  const cartUi = useTabletCartUiOptional()
+  const { callingStaff, submitWaiterCall } = useWaiterCallSubmit(
+    merchantId,
+    tableName
+  )
+
+  const tableQuery = tableName
+    ? `?table=${encodeURIComponent(tableName)}`
+    : ""
   const menuPath = `/consumer/${merchantId}${tableQuery}`
   const checkoutPath = `/consumer/${merchantId}/checkout${tableQuery}`
 
   const navBtn =
-    "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold text-gray-500 touch-manipulation active:scale-95 sm:text-xs"
+    "flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] font-semibold text-[#8a7344] touch-manipulation active:scale-95 sm:text-xs"
 
-  const [callingStaff, setCallingStaff] = React.useState(false)
+  const handleCallStaff = () => {
+    void submitWaiterCall()
+  }
 
-  const handleCallStaff = async () => {
-    if (callingStaff) return
-    setCallingStaff(true)
+  const torderSecondaryBtn =
+    "flex min-h-12 items-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 text-sm font-semibold text-black touch-manipulation transition active:scale-[0.98] hover:bg-neutral-50"
 
-    const res = await postApi<ApiResponse<unknown>>({
-      url: POST_WAITER_CALL,
-      values: { merchantId, tableName },
-    })
+  const torderPrimaryBtn =
+    "flex min-h-12 min-w-[9.5rem] items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-bold text-white touch-manipulation transition active:scale-[0.98] hover:bg-neutral-900 sm:min-w-[10.5rem]"
 
-    setCallingStaff(false)
+  if (variant === "torder") {
+    return (
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white md:left-[var(--torder-sidebar-w)]"
+        style={
+          {
+            "--torder-sidebar-w": `${TORDER_SIDEBAR_WIDTH_PX}px`,
+            height: TORDER_BOTTOM_BAR_HEIGHT_PX,
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          } as React.CSSProperties
+        }
+      >
+        <div className="flex h-full items-center justify-between gap-3 px-4 md:px-6">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={torderSecondaryBtn}
+              onClick={() => toast(t.tablet.noticeMsg, { icon: "🎁" })}
+            >
+              <Gift className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="hidden sm:inline">{t.tablet.event}</span>
+            </button>
+            <div className={cn(torderSecondaryBtn, "px-3")}>
+              <LanguageSwitcher compact className="!gap-1.5" />
+            </div>
+          </div>
 
-    if (res?.success) {
-      toast.success(copy.staffCalled)
-    } else {
-      toast.error(res?.message || copy.staffCallFailed)
-    }
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className={torderPrimaryBtn}
+              onClick={() => cartUi?.openHistory()}
+            >
+              <ClipboardList className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{t.tablet.orderHistoryTitle}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (active === "menu" && cartUi) {
+                  cartUi.openCart()
+                  return
+                }
+                router.push(active === "checkout" ? menuPath : checkoutPath)
+              }}
+              className={torderPrimaryBtn}
+            >
+              <ShoppingBag className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">
+                {cartCount > 0
+                  ? t.tablet.cartTitleWithCount(
+                      cartCount > 99 ? "99+" : String(cartCount)
+                    )
+                  : t.tablet.cart}
+              </span>
+            </button>
+          </div>
+        </div>
+      </nav>
+    )
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#d4ddf0] bg-white/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-stretch gap-1">
-        <button
-          type="button"
-          className={navBtn}
-          onClick={() => toast(copy.noticeMsg, { icon: "📢" })}
-        >
-          <Bell className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="truncate">{copy.notice}</span>
+    <nav
+      className={cn(
+        "fixed bottom-0 left-0 right-0 border-t border-[#c9a227]/25 bg-[#121110]/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md",
+        consumerMobileLayer ? "z-[9998]" : "z-40",
+        menuColumnOnlyOnDesktop && "xl:right-auto xl:w-[75%]"
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto flex max-w-6xl items-stretch gap-1",
+          menuColumnOnlyOnDesktop && "xl:max-w-none xl:w-full"
+        )}
+      >
+        <button type="button" className={navBtn} onClick={() => toast(t.tablet.noticeMsg, { icon: "📢" })}>
+          <Bell className="h-5 w-5 shrink-0 text-[#c9a227]" aria-hidden />
+          <span className="truncate">{t.tablet.notice}</span>
         </button>
 
-        <button
-          type="button"
-          className={navBtn}
-          onClick={() => toast(copy.historyMsg)}
-        >
-          <ClipboardList className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="truncate">{copy.orderHistory}</span>
+        <button type="button" className={navBtn} onClick={() => toast(t.tablet.historyMsg)}>
+          <ClipboardList className="h-5 w-5 shrink-0 text-[#c9a227]" aria-hidden />
+          <span className="truncate">{t.tablet.orderHistory}</span>
         </button>
 
         <button
@@ -89,17 +164,17 @@ function TabletBottomNav({
           disabled={callingStaff}
           onClick={handleCallStaff}
         >
-          <UserRound className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="truncate">{copy.callStaff}</span>
+          <UserRound className="h-5 w-5 shrink-0 text-[#c9a227]" aria-hidden />
+          <span className="truncate">{t.tablet.callStaff}</span>
         </button>
 
         <button
           type="button"
           className={navBtn}
-          onClick={() => toast(copy.robotMsg, { icon: "🤖" })}
+          onClick={() => toast(t.tablet.robotMsg, { icon: "🤖" })}
         >
-          <Bot className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="truncate">{copy.servingRobot}</span>
+          <Bot className="h-5 w-5 shrink-0 text-[#c9a227]" aria-hidden />
+          <span className="truncate">{t.tablet.servingRobot}</span>
         </button>
 
         <button
@@ -108,16 +183,17 @@ function TabletBottomNav({
             router.push(active === "checkout" ? menuPath : checkoutPath)
           }
           className={cn(
-            "relative ml-1 flex min-h-[3.25rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-3 text-xs font-bold text-white shadow-lg touch-manipulation active:scale-95 sm:min-w-[6.5rem]",
+            "relative ml-1 flex min-h-[3.25rem] min-w-[5.5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-2xl border border-[#c9a227] px-3 text-xs font-bold shadow-lg touch-manipulation active:scale-95 sm:min-w-[6.5rem]",
             active === "checkout"
-              ? "bg-[#1548D4]"
-              : "bg-[#1E5EFF]"
+              ? "bg-[#8a7344] text-[#f3e8cf]"
+              : "bg-gradient-to-b from-[#c9a227] to-[#8a7344] text-[#121110]",
+            hideCartOnDesktop && "xl:hidden"
           )}
         >
           <ShoppingCart className="h-5 w-5" aria-hidden />
-          <span>{copy.cart}</span>
+          <span>{t.tablet.cart}</span>
           {cartCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white ring-2 ring-white">
+            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[11px] font-bold text-white ring-2 ring-[#121110]">
               {cartCount > 99 ? "99+" : cartCount}
             </span>
           )}

@@ -6,6 +6,15 @@ import mongoose from "mongoose";
 import mongoServer from "@/config/mongoConfig";
 
 
+export async function resolveMerchantId(
+  req: NextRequest
+): Promise<mongoose.Types.ObjectId | null> {
+  const authResult = await verifyAuth(req);
+  if (authResult instanceof NextResponse) return null;
+  if (!authResult || !mongoose.isValidObjectId(authResult)) return null;
+  return new mongoose.Types.ObjectId(String(authResult));
+}
+
 export const verifyAuth = async (req: NextRequest) => {
   await mongoServer()
   const token = req.cookies.get("token")?.value;
@@ -18,7 +27,14 @@ export const verifyAuth = async (req: NextRequest) => {
   }
 
   try {
-    const merchantId = verifyToken(token) as mongoose.Types.ObjectId;
+    const merchantId = verifyToken(token);
+
+    if (!merchantId) {
+      return NextResponse.json(
+        { success: false, message: "Invalid token" },
+        { status: 401 }
+      );
+    }
 
     return merchantId;
   } catch (error) {

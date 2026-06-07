@@ -1,10 +1,11 @@
 "use client"
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import React from "react"
 import { getApi } from "@/utils/common"
 import { ApiResponse } from "@/utils/api"
 import { GET_ORDER_TRENS } from "@/utils/APIConstant"
+import { ChartResponsiveContainer } from "./ChartResponsiveContainer"
 
 interface OrderTrends { day: string; orders: number }
 
@@ -40,54 +41,52 @@ export default function OrderTrackingChart() {
       </div>
 
       {/* CHART */}
-      <div className="h-[280px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={trends}
-            margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
-          >
-            {/* soft grid */}
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#E5E7EB"
-            />
+      <ChartResponsiveContainer height={280}>
+        <LineChart
+          data={trends}
+          margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+        >
+          {/* soft grid */}
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#E5E7EB"
+          />
 
-            <XAxis
-              dataKey="day"
-              tick={{ fontSize: 12, fill: "#6B7280" }}
-              axisLine={false}
-              tickLine={false}
-            />
+          <XAxis
+            dataKey="day"
+            tick={{ fontSize: 12, fill: "#6B7280" }}
+            axisLine={false}
+            tickLine={false}
+          />
 
-            <YAxis
-              tick={{ fontSize: 12, fill: "#6B7280" }}
-              axisLine={false}
-              tickLine={false}
-            />
+          <YAxis
+            tick={{ fontSize: 12, fill: "#6B7280" }}
+            axisLine={false}
+            tickLine={false}
+          />
 
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #E5E7EB",
-                boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-                fontSize: "12px",
-              }}
-              labelStyle={{ fontWeight: 600 }}
-            />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #E5E7EB",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
+              fontSize: "12px",
+            }}
+            labelStyle={{ fontWeight: 600 }}
+          />
 
-            <Line
-              type="monotone"
-              dataKey="orders"
-              stroke="#6366F1"
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+          <Line
+            type="monotone"
+            dataKey="orders"
+            stroke="#6366F1"
+            strokeWidth={3}
+            dot={false}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ChartResponsiveContainer>
     </div>
   )
 }

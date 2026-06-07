@@ -1,13 +1,24 @@
 import mongoose from "mongoose";
 
-export type OrderStatus = "new" | "accepted" | "cooking" | "done";
+export type OrderStatus =
+  | "new"
+  | "accepted"
+  | "cooking"
+  | "done"
+  | "closed";
 
 export interface IOrderItem {
   menuItemId?: mongoose.Types.ObjectId;
   title: string;
+  nameMn?: string;
+  nameEn?: string;
+  selectedSizeLabelMn?: string;
+  selectedSizeLabelEn?: string;
   price: number;
   quantity: number;
   image?: string;
+  /** Waiter marked this line as delivered to the table */
+  served?: boolean;
 }
 
 export interface IOrder {
@@ -26,9 +37,14 @@ const orderItemSchema = new mongoose.Schema<IOrderItem>(
   {
     menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "menus" },
     title: { type: String, required: true },
+    nameMn: { type: String, trim: true },
+    nameEn: { type: String, trim: true },
+    selectedSizeLabelMn: { type: String, trim: true },
+    selectedSizeLabelEn: { type: String, trim: true },
     price: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
     image: { type: String },
+    served: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -50,7 +66,7 @@ const orderSchema = new mongoose.Schema<IOrder>(
     total: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ["new", "accepted", "cooking", "done"],
+      enum: ["new", "accepted", "cooking", "done", "closed"],
       default: "new",
     },
   },

@@ -14,18 +14,25 @@ import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
 import { ArrowLeft, History } from "lucide-react"
+import { formatPrice } from "@/utils/currency"
+import { labelOrderStatus } from "@/utils/i18n/orderStatus"
+import { useLocale } from "@/context/LocaleContext"
+import { formatOrderItemLine } from "@/utils/menuBilingual"
+import LanguageSwitcher from "@/components/common/LanguageSwitcher"
+import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
 
 type HistoryFilter = "all" | "today"
 
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
-}
-
 function HistoryOrderCard({ order }: { order: KitchenOrder }) {
+  const { t, locale, dateLocale } = useLocale()
   const completedAt = order.updatedAt ?? order.createdAt
+  const c = t.common
+
+  const formatDateTime = (value: string) =>
+    new Date(value).toLocaleString(dateLocale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    })
 
   return (
     <article className="rounded-2xl border bg-white p-5 shadow-sm">
@@ -35,14 +42,14 @@ function HistoryOrderCard({ order }: { order: KitchenOrder }) {
             {order.tableName}
           </h3>
           <p className="mt-1 text-xs text-gray-500">
-            Placed: {formatDateTime(order.createdAt)}
+            {c.placed}: {formatDateTime(order.createdAt)}
           </p>
           <p className="text-xs text-gray-500">
-            Completed: {formatDateTime(completedAt)}
+            {c.completed}: {formatDateTime(completedAt)}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800 capitalize">
-          {order.status}
+        <Badge className="bg-green-100 text-green-800">
+          {labelOrderStatus(order.status, locale)}
         </Badge>
       </div>
 
@@ -53,27 +60,30 @@ function HistoryOrderCard({ order }: { order: KitchenOrder }) {
             className="flex justify-between text-sm"
           >
             <span>
-              {item.quantity}× {item.title}
+              {formatOrderItemLine(item, locale, item.quantity)}
             </span>
             <span className="text-gray-600">
-              ₹{item.price * item.quantity}
+              {formatPrice(item.price * item.quantity)}
             </span>
           </li>
         ))}
       </ul>
 
       <div className="flex justify-between font-semibold text-gray-900">
-        <span>Total</span>
-        <span>₹{order.total}</span>
+        <span>{c.total}</span>
+        <span>{formatPrice(order.total)}</span>
       </div>
     </article>
   )
 }
 
 function HistoryPage() {
+  const { t, locale } = useLocale()
   const [orders, setOrders] = React.useState<KitchenOrder[]>([])
   const [loading, setLoading] = React.useState(true)
   const [filter, setFilter] = React.useState<HistoryFilter>("all")
+  const h = t.history
+  const c = t.common
 
   const fetchHistory = React.useCallback(async () => {
     const res = await getApi<ApiResponse<KitchenOrder[]>>({
@@ -96,8 +106,8 @@ function HistoryPage() {
   }, [orders, filter])
 
   const sections = React.useMemo(
-    () => groupOrdersForHistory(filteredOrders),
-    [filteredOrders]
+    () => groupOrdersForHistory(filteredOrders, locale),
+    [filteredOrders, locale]
   )
 
   const filterBtn = (active: boolean) =>
@@ -109,31 +119,33 @@ function HistoryPage() {
     )
 
   return (
-    <div className="min-h-screen bg-[#F8F5F0] px-4 py-24 md:px-8">
+    <div className="min-h-screen bg-[#F8F5F0]">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
+            <SidebarMenuToggle />
             <History className="h-8 w-8 text-green-600" aria-hidden />
             <h1 className="font-serif text-3xl font-bold text-slate-950">
-              Order History
+              {h.title}
             </h1>
           </div>
-          <Button
-            asChild
-            size="sm"
-            variant="outline"
-            className="border-green-600 text-green-700 hover:bg-green-50"
-          >
-            <Link href="/kitchen">
-              <ArrowLeft className="mr-1 h-4 w-4" aria-hidden />
-              Back to Kitchen
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <LanguageSwitcher />
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="border-green-600 text-green-700 hover:bg-green-50"
+            >
+              <Link href="/kitchen">
+                <ArrowLeft className="mr-1 h-4 w-4" aria-hidden />
+                {t.kitchen.backToKitchen}
+              </Link>
+            </Button>
+          </div>
         </div>
 
-        <p className="mb-4 text-sm text-gray-600">
-          Completed orders only (status: done)
-        </p>
+        <p className="mb-4 text-sm text-gray-600">{h.subtitle}</p>
 
         <div className="mb-8 flex gap-2">
           <button
@@ -141,26 +153,24 @@ function HistoryPage() {
             className={filterBtn(filter === "today")}
             onClick={() => setFilter("today")}
           >
-            Today
+            {c.today}
           </button>
           <button
             type="button"
             className={filterBtn(filter === "all")}
             onClick={() => setFilter("all")}
           >
-            All
+            {c.all}
           </button>
         </div>
 
         {loading && (
-          <p className="text-center text-gray-500">Loading history...</p>
+          <p className="text-center text-gray-500">{h.loading}</p>
         )}
 
         {!loading && filteredOrders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-500">
-            {filter === "today"
-              ? "No completed orders today"
-              : "No completed orders yet"}
+            {filter === "today" ? h.emptyToday : h.emptyAll}
           </div>
         )}
 

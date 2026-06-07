@@ -1,12 +1,17 @@
 "use client"
-import React from 'react'
-import BentoBox from './BentoBox'
-import OrderTrackingChart from './OrderTraker'
-import PopularItemsCard from './PopularItemCard'
+
+import React from "react"
+import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
+import BentoBox from "./BentoBox"
+import OrderTrackingChart from "./OrderTraker"
+import PopularItemsCard from "./PopularItemCard"
 
 function index() {
   return (
     <div>
+      <div className="mb-4 flex items-center">
+        <SidebarMenuToggle />
+      </div>
       <BentoBox />
       <div className="grid grid-cols-12 gap-6 w-full">
         <div className="col-span-12 xl:col-span-8">
@@ -17,7 +22,6 @@ function index() {
           <PopularItemsCard />
         </div>
       </div>
-
     </div>
   )
 }

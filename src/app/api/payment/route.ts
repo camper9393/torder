@@ -7,10 +7,14 @@ import { Order } from "@/model/order"
 import { Transaction, TransactionStatus } from "@/model/transations"
 import { Merchants } from "@/model/merchants"
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+function getRazorpayClient(): Razorpay {
+  const key_id = process.env.RAZORPAY_KEY_ID
+  const key_secret = process.env.RAZORPAY_KEY_SECRET
+  if (!key_id || !key_secret) {
+    throw new Error("Razorpay is not configured")
+  }
+  return new Razorpay({ key_id, key_secret })
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -68,6 +72,7 @@ export async function GET(req: NextRequest) {
       amount,
     })
 
+    const razorpay = getRazorpayClient()
     const razorpayOrder = await razorpay.orders.create({
       amount: amount * 100,
       currency: "INR",

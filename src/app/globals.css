@@ -1,58 +1,14 @@
-@import "tailwindcss";
-@import "tw-animate-css";
 @import 'swiper/css';
 @import 'swiper/css/navigation';
 @import 'swiper/css/pagination';
 @import 'swiper/css/scrollbar';
-/* @import "tw-animate-css"; */
 
-@custom-variant dark (&:is(.dark *));
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --navbar-height: 4rem;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
 }
 
 :root {
@@ -126,7 +82,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
@@ -269,5 +225,364 @@
     box-shadow: none !important;
     padding: 0 !important;
     background: #fff !important;
+  }
+}
+
+@keyframes admin-table-new-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 2px 12px rgba(15, 23, 42, 0.08),
+      0 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    box-shadow:
+      0 4px 20px rgba(15, 23, 42, 0.1),
+      0 0 20px 4px rgba(239, 68, 68, 0.35);
+  }
+}
+
+.admin-table-card--new {
+  animation: admin-table-new-pulse 2.5s ease-in-out infinite;
+}
+
+/* Touch-friendly admin tables / POS */
+.admin-tables-pos {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-tables-pos button,
+.admin-tables-pos [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Floor plan table cards — size tiers via container queries (large → xs) */
+.floor-plan-table-card {
+  container-type: size;
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+  gap: 0;
+}
+
+.floor-card-body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 12px 12px 8px;
+}
+
+.floor-card-footer,
+.table-card-price-footer {
+  flex-shrink: 0;
+  width: 100%;
+  margin-top: auto;
+  padding: 0.4rem 0.5rem;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.08);
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.table-card-price-text,
+.floor-card-price {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #111827;
+}
+
+/* Circle / capsule tables — name top-center, price bottom-center (same as rectangle cards) */
+[data-floor-shape="circle"] .floor-plan-table-card {
+  width: 100%;
+  height: 100%;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  border-radius: 9999px;
+  padding: 0;
+}
+
+[data-floor-shape="circle"] .floor-card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: max(8px, 10%) max(12px, 22%) 4px;
+}
+
+[data-floor-shape="circle"] .floor-card-footer {
+  border-radius: 0 0 9999px 9999px;
+  padding: 0.35rem max(10px, 18%);
+}
+
+[data-floor-shape="circle"] .floor-card-top {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+}
+
+[data-floor-shape="circle"] .floor-card-name {
+  flex: none;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: clip;
+  word-break: keep-all;
+  font-size: clamp(11px, 5cqi, 16px);
+}
+
+[data-floor-shape="circle"] .floor-card-spacer {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+[data-floor-shape="circle"] .floor-card-time {
+  display: none;
+}
+
+[data-floor-shape="circle"] .floor-card-elapsed {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.floor-card-top {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.375rem;
+}
+
+.floor-card-elapsed {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  padding-inline: 0.25rem;
+}
+
+.floor-card-name {
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.floor-card-time {
+  flex-shrink: 0;
+  line-height: 1.2;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.floor-card-spacer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+[data-floor-shape="circle"] .floor-card-price,
+.floor-card-price {
+  font-size: clamp(12px, 4.5cqi, 16px);
+}
+
+/* Medium / small: hide elapsed time only — always keep name + price */
+@container (max-height: 96px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+}
+
+@container (max-width: 112px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+}
+
+/* Compact: name on top, total centered at bottom */
+@container (max-height: 88px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+
+  .floor-card-spacer {
+    display: none;
+  }
+
+  .floor-plan-table-card {
+    gap: 0;
+    padding: 0;
+  }
+
+  .floor-card-body {
+    padding: 8px 8px 4px;
+  }
+
+  .floor-card-footer {
+    padding: 4px 6px;
+  }
+
+  .floor-card-top {
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  .floor-card-name {
+    flex: none;
+    width: 100%;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .floor-card-price {
+    font-size: 14px;
+  }
+}
+
+@container (max-width: 100px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+
+  .floor-card-spacer {
+    display: none;
+  }
+
+  .floor-plan-table-card {
+    gap: 0;
+    padding: 0;
+  }
+
+  .floor-card-body {
+    padding: 8px 8px 4px;
+  }
+
+  .floor-card-footer {
+    padding: 4px 6px;
+  }
+
+  .floor-card-top {
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  .floor-card-name {
+    flex: none;
+    width: 100%;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .floor-card-price {
+    font-size: 14px;
+  }
+}
+
+/* Extra-small delivery/takeout tiles — name + price only */
+@container (max-height: 56px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+
+  .floor-card-spacer {
+    display: none;
+  }
+
+  .floor-plan-table-card {
+    gap: 0;
+    padding: 0;
+  }
+
+  .floor-card-body {
+    padding: 6px 6px 2px;
+  }
+
+  .floor-card-footer {
+    padding: 3px 5px;
+  }
+
+  .floor-card-top {
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  .floor-card-name {
+    flex: none;
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .floor-card-price {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+}
+
+@container (max-width: 72px) {
+  .floor-card-elapsed {
+    display: none;
+  }
+
+  .floor-card-spacer {
+    display: none;
+  }
+
+  .floor-plan-table-card {
+    gap: 0;
+    padding: 0;
+  }
+
+  .floor-card-body {
+    padding: 6px 6px 2px;
+  }
+
+  .floor-card-footer {
+    padding: 3px 5px;
+  }
+
+  .floor-card-top {
+    flex: 0 0 auto;
+    justify-content: center;
+  }
+
+  .floor-card-name {
+    flex: none;
+    width: 100%;
+    font-size: 12px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .floor-card-price {
+    font-size: 13px;
+    line-height: 1.2;
   }
 }
