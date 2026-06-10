@@ -1,12 +1,39 @@
 import type { CheckOutItems } from "@/store/reducer/checkout"
 import { parseMoneyAmount } from "@/utils/parseMoneyAmount"
-import type { RawOrderItemLike } from "@/utils/orderItemPricing"
+
+/** Raw order line from client/API — price may live on several fields (never tableName). */
+export type RawOrderItemLike = {
+  menuItemId?: string
+  title?: string
+  nameMn?: string
+  nameEn?: string
+  selectedSizeLabelMn?: string
+  selectedSizeLabelEn?: string
+  price?: unknown
+  selectedPrice?: unknown
+  selectedSize?: unknown
+  size?: unknown
+  unitPrice?: unknown
+  menuItem?: unknown
+  itemCount?: unknown
+  qty?: unknown
+  count?: unknown
+  orderQuantity?: unknown
+  quantity?: unknown
+  image?: string
+  served?: boolean
+}
 
 /** Menu DB stock placeholder — never use as order line quantity. */
 export const MENU_INVENTORY_STOCK_DEFAULT = 999
 
+function readUnitPrice(value: unknown): number {
+  const parsed = parseMoneyAmount(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : NaN
+}
+
 function selectedSizePrice(raw: RawOrderItemLike): unknown {
-  const size = raw.selectedSize
+  const size = raw.selectedSize ?? raw.size
   if (size && typeof size === "object" && !Array.isArray(size)) {
     return (size as { price?: unknown }).price
   }
@@ -16,33 +43,139 @@ function selectedSizePrice(raw: RawOrderItemLike): unknown {
 function menuItemPrice(raw: RawOrderItemLike): unknown {
   const menu = raw.menuItem
   if (menu && typeof menu === "object" && !Array.isArray(menu)) {
-    return (menu as { price?: unknown }).price
+    const record = menu as Record<string, unknown>
+    return (
+      record.price ??
+      record.salePrice ??
+      record.selectedPrice ??
+      record.finalPrice ??
+      record.unitPrice
+    )
   }
   return undefined
 }
 
-/** Order unit price only — never table name or menu stock quantity. */
-export function resolveOrderLinePrice(raw: RawOrderItemLike): number {
-  const candidates: unknown[] = [
-    selectedSizePrice(raw),
-    raw.selectedPrice,
-    raw.unitPrice,
-    raw.price,
-    menuItemPrice(raw),
-  ]
+function firstValidPortionPrice(raw: RawOrderItemLike): number {
+  const sources = [raw, raw.menuItem].filter(
+    (v): v is object => v != null && typeof v === "object" && !Array.isArray(v)
+  )
 
-  for (const candidate of candidates) {
-    const n = Number(candidate)
-    if (Number.isFinite(n) && n > 0) {
-      return n
-    }
-    const parsed = parseMoneyAmount(candidate)
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed
+  for (const source of sources) {
+    const sizes = (source as { sizes?: unknown }).sizes
+    if (!Array.isArray(sizes)) continue
+
+    for (const size of sizes) {
+      if (!size || typeof size !== "object") continue
+      const parsed = readUnitPrice((size as { price?: unknown }).price)
+      if (Number.isFinite(parsed)) return parsed
     }
   }
 
   return NaN
+}
+
+function priceFromSizeLabels(raw: RawOrderItemLike): number {
+  const labelMn = String(raw.selectedSizeLabelMn ?? "").trim().toLowerCase()
+  const labelEn = String(raw.selectedSizeLabelEn ?? "").trim().toLowerCase()
+  if (!labelMn && !labelEn) return NaN
+
+  const sources = [raw, raw.menuItem].filter(
+    (v): v is object => v != null && typeof v === "object" && !Array.isArray(v)
+  )
+
+  for (const source of sources) {
+    const sizes = (source as { sizes?: unknown }).sizes
+    if (!Array.isArray(sizes)) continue
+
+    for (const size of sizes) {
+      if (!size || typeof size !== "object") continue
+      const row = size as {
+        price?: unknown
+        labelMn?: string
+        labelEn?: string
+        label?: string
+      }
+      const smn = String(row.labelMn ?? row.label ?? "")
+        .trim()
+        .toLowerCase()
+      const sen = String(row.labelEn ?? "").trim().toLowerCase()
+      const matches =
+        (labelMn && smn === labelMn) ||
+        (labelEn && sen === labelEn) ||
+        (labelMn && smn && smn.includes(labelMn)) ||
+        (labelEn && sen && sen.includes(labelEn))
+      if (!matches) continue
+
+      const parsed = readUnitPrice(row.price)
+      if (Number.isFinite(parsed)) return parsed
+    }
+  }
+
+  return NaN
+}
+
+/** Order unit price only — never table name or menu stock quantity. */
+export function resolveOrderLinePrice(raw: RawOrderItemLike): number {
+  const record = raw as Record<string, unknown>
+
+  const candidates: unknown[] = [
+    selectedSizePrice(raw),
+    raw.selectedPrice,
+    record.finalPrice,
+    record.salePrice,
+    raw.unitPrice,
+    raw.price,
+    menuItemPrice(raw),
+    firstValidPortionPrice(raw),
+  ]
+
+  for (const candidate of candidates) {
+    const parsed = readUnitPrice(candidate)
+    if (Number.isFinite(parsed)) return parsed
+  }
+
+  const fromLabels = priceFromSizeLabels(raw)
+  if (Number.isFinite(fromLabels)) return fromLabels
+
+  return NaN
+}
+
+export function logOrderPriceDebug(
+  label: string,
+  raw: unknown,
+  unitPrice: number,
+  quantity: number
+): void {
+  console.debug("[order-price]", {
+    label,
+    rawMenuItem: raw,
+    extractedUnitPrice: unitPrice,
+    quantity,
+    calculatedTotal:
+      Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice * quantity : 0,
+  })
+}
+
+/** Resolve a sellable unit price for cart/order lines; null when missing. */
+export function resolveMenuUnitPrice(
+  raw: RawOrderItemLike,
+  options?: { debugLabel?: string; quantity?: number }
+): number | null {
+  const unitPrice = resolveOrderLinePrice(raw)
+  const quantity = options?.quantity ?? resolveOrderLineQuantity(raw)
+
+  if (Number.isFinite(unitPrice) && unitPrice >= 0) {
+    logOrderPriceDebug(options?.debugLabel ?? "resolveMenuUnitPrice", raw, unitPrice, quantity)
+    return unitPrice
+  }
+
+  console.warn("[order-price] Missing valid unit price", {
+    label: options?.debugLabel,
+    rawMenuItem: raw,
+    extractedUnitPrice: unitPrice,
+    quantity,
+  })
+  return null
 }
 
 type OrderQuantityInput = {
@@ -94,11 +227,15 @@ export function resolveOrderLineQuantity(raw: OrderQuantityInput): number {
 }
 
 export function validateOrderLinePrice(price: number, raw: unknown): number {
-  if (!Number.isFinite(price) || price <= 0) {
-    console.error("INVALID PRICE ITEM", raw)
-    throw new Error("Invalid item price")
+  if (Number.isFinite(price) && price >= 0) {
+    return price
   }
-  return price
+
+  console.warn("Invalid order line price", {
+    resolvedPrice: price,
+    raw,
+  })
+  throw new Error("Invalid item price")
 }
 
 /** Strip menu stock fields; map checkout/cart lines for order APIs. */
@@ -110,10 +247,17 @@ export function mapCheckoutItemToOrderPayload(
   selectedPrice: number
   quantity: number
 } {
-  const price = validateOrderLinePrice(resolveOrderLinePrice(item), item)
+  const unitPrice =
+    resolveMenuUnitPrice(item, {
+      debugLabel: item.title ?? "checkout-line",
+      quantity: resolveOrderLineQuantity(item),
+    }) ?? NaN
+
+  const price = validateOrderLinePrice(unitPrice, item)
   const quantity = resolveOrderLineQuantity(item)
   const id = item._id ?? item.menuItemId
   if (!id) {
+    console.warn("Order line missing menu item id", item)
     throw new Error("Invalid item price")
   }
 

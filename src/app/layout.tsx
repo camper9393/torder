@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
 import NavBar from "@/components/common/NavBar"
 import AppChrome from "@/components/layout/AppChrome"
+import ClickSoundProvider from "@/components/layout/ClickSoundProvider"
 import { Toaster } from "react-hot-toast"
 import { ReduxProvider } from "@/context/redux"
 import LocaleProvider from "@/context/LocaleProvider"
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <ReduxProvider>
           <LocaleProvider>
+            <ClickSoundProvider />
             <NavBar />
 
             <AppChrome>{children}</AppChrome>

@@ -21,7 +21,9 @@ import {
 } from "@/utils/menuBilingual"
 import type { IMenu } from "@/types/menu"
 import type { CheckOutItems } from "@/store/reducer/checkout"
+import { resolveMenuUnitPrice } from "@/utils/orderLineMapping"
 import { cn } from "@/lib/utils"
+import toast from "react-hot-toast"
 import {
   MENU_BADGE_STYLES,
   resolveMenuCardBadges,
@@ -135,19 +137,30 @@ function MenuItemPortionModal({
   const activeSize = needsPortionPicker ? selectedSize : singleSize ?? null
   const canShowQuantity = !needsPortionPicker || selectedSize != null
   const isPortionUnselected = needsPortionPicker && selectedSize == null
-  const unitPrice = activeSize?.price ?? item.price
+  const unitPrice =
+    resolveMenuUnitPrice(
+      {
+        ...item,
+        selectedSize: activeSize ?? undefined,
+        selectedSizeLabelMn: activeSize?.labelMn,
+        selectedSizeLabelEn: activeSize?.labelEn,
+        menuItem: item,
+      },
+      { debugLabel: displayName, quantity }
+    ) ?? 0
   const lineTotal = unitPrice * quantity
 
   const handleAdd = () => {
     if (needsPortionPicker && !selectedSize) return
-    const line = buildCheckoutLineFromMenu(
-      item,
-      activeSize ?? undefined
-    ) as CheckOutItems
+    const line = buildCheckoutLineFromMenu(item, activeSize ?? undefined, quantity)
+    if (!line) {
+      toast.error("Үнэ олдсонгүй. Цэсний мэдээллийг шалгана уу.")
+      return
+    }
     onAddToCart({
       ...line,
       itemCount: quantity,
-    })
+    } as CheckOutItems)
     onOpenChange(false)
   }
 

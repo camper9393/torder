@@ -11,6 +11,7 @@ import { formatPrice } from "@/utils/currency"
 import { useLocale } from "@/context/LocaleContext"
 import Image from "next/image"
 import React from "react"
+import toast from "react-hot-toast"
 import { SpicyMenuBadge } from "@/components/MenuInterface/SpicyMenuBadge"
 import { normalizeSpicyLevel } from "@/utils/menuSpicy"
 import {
@@ -31,6 +32,10 @@ function MenuItem({ item }: { item: IMenu }) {
   const handleUpdate = (newQty: number) => {
     if (newQty > qty) {
       const line = buildCheckoutLineFromMenu(normalizeMenuDocument(item))
+      if (!line) {
+        toast.error("Үнэ олдсонгүй. Цэсний мэдээллийг шалгана уу.")
+        return
+      }
       dispatch(
         addCheckOutItem({
           ...line,

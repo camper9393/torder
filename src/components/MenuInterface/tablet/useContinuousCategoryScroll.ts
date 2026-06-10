@@ -36,7 +36,9 @@ export function useContinuousCategoryScroll({
   const scrollRef = React.useRef<HTMLElement>(null)
   const sectionElementsRef = React.useRef<Map<string, HTMLElement>>(new Map())
   const scrollLockRef = React.useRef(false)
-  const scrollLockTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const scrollLockTimerRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  )
   const categoriesRef = React.useRef(categories)
 
   const [activeCategory, setActiveCategory] = React.useState("")

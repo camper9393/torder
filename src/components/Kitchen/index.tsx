@@ -23,7 +23,6 @@ import BillReceiptModal from "./BillReceiptModal"
 import { useKitchenDing, useNotifyNewKitchenItems } from "@/hooks/useKitchenDing"
 import { usePolling } from "@/hooks/usePolling"
 import { labelOrderStatus } from "@/utils/i18n/orderStatus"
-import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
 import { formatPrice } from "@/utils/currency"
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine } from "@/utils/menuBilingual"
@@ -51,11 +50,10 @@ function KitchenPage() {
   const k = t.kitchen
   const c = t.common
 
-  const { soundEnabled, playDing, enableSound } = useKitchenDing()
+  const { soundEnabled, playDing, playWaiterDing, enableSound } = useKitchenDing()
 
   useNotifyNewKitchenItems(orders, "new", playDing)
-  useNotifyNewKitchenItems(orders, "accepted", playDing)
-  useNotifyNewKitchenItems(waiterCalls, "new", playDing)
+  useNotifyNewKitchenItems(waiterCalls, "new", playWaiterDing)
 
   const fetchInFlightRef = React.useRef(false)
   const hasLoadedRef = React.useRef(false)
@@ -144,7 +142,6 @@ function KitchenPage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-2 flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
-              <SidebarMenuToggle />
               <h1 className="font-serif text-3xl font-bold text-slate-950">
                 {k.title}
               </h1>
@@ -169,7 +166,7 @@ function KitchenPage() {
               variant="outline"
               className="border-slate-300 text-slate-700 hover:bg-white"
             >
-              <Link href="/history">
+              <Link href="/admin/reports/order-history">
                 <History className="mr-1 h-4 w-4" aria-hidden />
                 {k.history}
               </Link>

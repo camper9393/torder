@@ -14,12 +14,12 @@ export function isKitchenTvRoute(pathname: string | null): boolean {
 export function usesMerchantSidebar(pathname: string | null): boolean {
   if (!pathname) return false
   if (pathname.startsWith("/admin")) return true
+  if (pathname === "/inventory" || pathname.startsWith("/inventory/")) return true
   if (pathname.startsWith("/dashboard/")) return true
   if (pathname === "/menu" || pathname.startsWith("/menu/")) return true
   if (pathname === "/qr-manager" || pathname.startsWith("/qr-manager/")) return true
   if (pathname === "/kitchen" || pathname.startsWith("/kitchen/")) return true
   if (pathname === "/tables" || pathname.startsWith("/tables/")) return true
-  if (pathname === "/history" || pathname.startsWith("/history/")) return true
   return false
 }
 

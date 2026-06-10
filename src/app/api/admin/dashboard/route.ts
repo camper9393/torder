@@ -1,7 +1,9 @@
 import mongoServer from "@/config/mongoConfig";
 import { verifyAuth } from "@/middleware/auth";
 import { Order, OrderStatus } from "@/model/order";
+import { Refund } from "@/model/refund";
 import { sendRJResponse } from "@/utils/api";
+import { getInventoryAlerts } from "@/utils/inventoryDeduction";
 import mongoose, { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -59,10 +61,13 @@ export async function GET(req: NextRequest) {
 
     const [
       todayStats,
+      todayRefundsAgg,
       statusAgg,
       topItems,
       recentOrders,
       dailyStats,
+      dailyRefundsAgg,
+      inventoryAlerts,
     ] = await Promise.all([
       Order.aggregate([
         { $match: matchMerchant },
@@ -94,6 +99,21 @@ export async function GET(req: NextRequest) {
               { $match: { status: "done" } },
               { $count: "count" },
             ],
+          },
+        },
+      ]),
+
+      Refund.aggregate([
+        {
+          $match: {
+            merchantId,
+            createdAt: { $gte: todayStart, $lte: todayEnd },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$refundAmount" },
           },
         },
       ]),
@@ -140,10 +160,31 @@ export async function GET(req: NextRequest) {
           },
         },
       ]),
+
+      Refund.aggregate([
+        {
+          $match: {
+            merchantId,
+            createdAt: { $gte: sevenDaysStart },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+            },
+            refunds: { $sum: "$refundAmount" },
+          },
+        },
+      ]),
+
+      getInventoryAlerts(merchantId, 5),
     ]);
 
     const facet = todayStats[0] ?? {};
     const todayRow = facet.today?.[0];
+    const todayGrossRevenue = todayRow?.revenue ?? 0;
+    const todayRefunds = todayRefundsAgg[0]?.total ?? 0;
     const activeCount = facet.active?.[0]?.count ?? 0;
     const completedCount = facet.completed?.[0]?.count ?? 0;
 
@@ -166,20 +207,32 @@ export async function GET(req: NextRequest) {
       ])
     );
 
+    const refundDayMap = new Map(
+      dailyRefundsAgg.map((d) => [d._id as string, d.refunds as number])
+    );
+
     const last7 = buildLast7Days();
-    const chartDays = last7.map(({ date, label }) => ({
-      date,
-      label,
-      revenue: dayMap.get(date)?.revenue ?? 0,
-      orders: dayMap.get(date)?.orders ?? 0,
-    }));
+    const chartDays = last7.map(({ date, label }) => {
+      const revenue = dayMap.get(date)?.revenue ?? 0;
+      const refunds = refundDayMap.get(date) ?? 0;
+      return {
+        date,
+        label,
+        revenue,
+        refunds,
+        netRevenue: revenue - refunds,
+        orders: dayMap.get(date)?.orders ?? 0,
+      };
+    });
 
     return sendRJResponse({
       success: true,
       message: "Admin dashboard fetched",
       data: {
         metrics: {
-          todayRevenue: todayRow?.revenue ?? 0,
+          todayRevenue: todayGrossRevenue,
+          todayRefunds,
+          todayNetRevenue: todayGrossRevenue - todayRefunds,
           todayOrders: todayRow?.count ?? 0,
           activeOrders: activeCount,
           completedOrders: completedCount,
@@ -195,6 +248,7 @@ export async function GET(req: NextRequest) {
         })),
         revenueByDay: chartDays,
         ordersByDay: chartDays,
+        inventoryAlerts,
       },
       status: 200,
     });

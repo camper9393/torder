@@ -52,7 +52,7 @@ export async function resolveOrderItemsForPersistence(
 
 
 
-    if (Number.isFinite(payloadPrice) && payloadPrice > 0) {
+    if (Number.isFinite(payloadPrice) && payloadPrice >= 0) {
 
       const [line] = normalizeOrderItemsForSave([
 

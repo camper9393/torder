@@ -1,23 +1,57 @@
 import { KitchenOrder } from "@/types/kitchenOrder"
-import { OrderStatus } from "@/model/order"
+import { OrderStatus, type IRefundedLineItem } from "@/model/order"
 
-export function serializeKitchenOrder(doc: {
+type OrderDoc = {
   _id: unknown
   merchantId?: unknown
   tableName: string
   items: KitchenOrder["items"]
   total: number
   status: string
+  paymentMethod?: string
+  paidAmount?: number
+  refundStatus?: string
+  refundedAmount?: number
+  refundedItems?: IRefundedLineItem[]
   createdAt: Date | string
   updatedAt?: Date | string
-}): KitchenOrder {
+}
+
+function refundedQtyByLine(
+  refundedItems?: IRefundedLineItem[]
+): Map<number, number> {
+  const map = new Map<number, number>()
+  for (const row of refundedItems ?? []) {
+    map.set(row.lineIndex, (map.get(row.lineIndex) ?? 0) + row.quantityRefunded)
+  }
+  return map
+}
+
+export function serializeKitchenOrder(doc: OrderDoc): KitchenOrder {
+  const refundedByLine = refundedQtyByLine(doc.refundedItems)
+
   return {
     _id: String(doc._id),
     merchantId: doc.merchantId ? String(doc.merchantId) : undefined,
     tableName: doc.tableName,
-    items: doc.items,
+    items: doc.items.map((item, index) => ({
+      ...item,
+      menuItemId: item.menuItemId ? String(item.menuItemId) : undefined,
+      refundedQuantity: refundedByLine.get(index) ?? 0,
+    })),
     total: doc.total,
     status: doc.status as OrderStatus,
+    paymentMethod: doc.paymentMethod,
+    paidAmount: doc.paidAmount ?? doc.total,
+    refundStatus: (doc.refundStatus as KitchenOrder["refundStatus"]) ?? "none",
+    refundedAmount: doc.refundedAmount ?? 0,
+    refundedItems: (doc.refundedItems ?? []).map((row) => ({
+      lineIndex: row.lineIndex,
+      menuItemId: row.menuItemId ? String(row.menuItemId) : undefined,
+      title: row.title,
+      quantityRefunded: row.quantityRefunded,
+      amountRefunded: row.amountRefunded,
+    })),
     createdAt:
       typeof doc.createdAt === "string"
         ? doc.createdAt
@@ -28,4 +62,8 @@ export function serializeKitchenOrder(doc: {
         : doc.updatedAt.toISOString()
       : undefined,
   }
+}
+
+export function formatOrderNumber(orderId: string): string {
+  return orderId.slice(-8).toUpperCase()
 }

@@ -2,6 +2,11 @@ import mongoServer from "@/config/mongoConfig";
 import { Order, OrderStatus, type IOrder, type IOrderItem } from "@/model/order";
 import type { KitchenOrder } from "@/types/kitchenOrder";
 import { sendRJResponse } from "@/utils/api";
+import {
+  deductInventoryForOrder,
+  deductInventoryForOrderItem,
+} from "@/utils/inventoryDeduction";
+import { resolveMerchantId } from "@/middleware/auth";
 import { resolveOrderItemsForPersistence } from "@/utils/orderItemPersistence";
 import type { RawOrderItemLike } from "@/utils/orderItemPricing";
 import { computeOrderTotal } from "@/utils/orderTotals";
@@ -103,6 +108,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     const update: Record<string, unknown> = {};
+    let markServedIndex: number | undefined;
+    let markServedFlag = false;
 
     if (itemIndex !== undefined && served !== undefined) {
       const idx = Math.floor(Number(itemIndex));
@@ -115,6 +122,10 @@ export async function PATCH(req: NextRequest) {
       }
 
       const servedFlag = Boolean(served);
+      const wasServed = existing.items[idx]?.served === true;
+      markServedIndex = idx;
+      markServedFlag = servedFlag && !wasServed;
+
       update.items = existing.items.map((item, i) => {
         if (i !== idx) return item;
         return { ...item, served: servedFlag };
@@ -131,6 +142,10 @@ export async function PATCH(req: NextRequest) {
         });
       }
       update.status = status;
+      if (status === "done") {
+        update.paidAmount = existing.total;
+        update.paymentMethod = existing.paymentMethod ?? "Бэлэн";
+      }
     }
 
     if (items !== undefined) {
@@ -195,6 +210,48 @@ export async function PATCH(req: NextRequest) {
         message: "Order not found",
         status: 404,
       });
+    }
+
+    if (markServedFlag && markServedIndex !== undefined) {
+      try {
+        const authMerchantId = await resolveMerchantId(req);
+        console.info("[inventory] Order line marked served — deducting stock", {
+          orderId: String(order._id),
+          itemIndex: markServedIndex,
+          title: order.items[markServedIndex]?.title,
+        });
+        await deductInventoryForOrderItem(
+          order,
+          markServedIndex,
+          authMerchantId ?? (existing.merchantId as Types.ObjectId)
+        );
+      } catch (deductErr) {
+        console.error("[inventory] Deduction failed for served line:", deductErr);
+      }
+    }
+
+    const becameDone =
+      status === "done" && existing.status !== "done";
+
+    if (becameDone) {
+      try {
+        const authMerchantId = await resolveMerchantId(req);
+        console.info("[inventory] Order marked DONE — running deduction", {
+          orderId: String(order._id),
+          itemCount: order.items.length,
+          items: order.items.map((item) => ({
+            title: item.title,
+            menuItemId: item.menuItemId ? String(item.menuItemId) : null,
+            quantity: item.quantity,
+          })),
+        });
+        await deductInventoryForOrder(
+          order,
+          authMerchantId ?? (existing.merchantId as Types.ObjectId)
+        );
+      } catch (deductErr) {
+        console.error("[inventory] Deduction failed for DONE order:", deductErr);
+      }
     }
 
     return sendRJResponse({

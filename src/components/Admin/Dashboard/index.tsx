@@ -52,13 +52,13 @@ import {
 
 import { cn } from "@/lib/utils"
 
+import InventoryAlerts from "@/components/Inventory/InventoryAlerts"
 
 import { formatPrice } from "@/utils/currency"
 
 import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 
 import { useLocale } from "@/context/LocaleContext"
-import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
 
 const statusStyles: Record<
 
@@ -122,6 +122,8 @@ function MetricCard({
 
   accent,
 
+  hint,
+
 }: {
 
   title: string
@@ -131,6 +133,8 @@ function MetricCard({
   icon: React.ReactNode
 
   accent: string
+
+  hint?: string
 
 }) {
 
@@ -161,6 +165,10 @@ function MetricCard({
       </div>
 
       <p className="text-2xl font-bold text-gray-900 md:text-3xl">{value}</p>
+
+      {hint ? (
+        <p className="mt-1 text-xs text-red-600">{hint}</p>
+      ) : null}
 
     </div>
 
@@ -268,9 +276,15 @@ function AdminDashboard() {
 
 
 
-  const { metrics, statusCounts, topItems, recentOrders, revenueByDay, ordersByDay } =
-
-    data
+  const {
+    metrics,
+    statusCounts,
+    topItems,
+    recentOrders,
+    revenueByDay,
+    ordersByDay,
+    inventoryAlerts,
+  } = data
 
 
 
@@ -281,8 +295,6 @@ function AdminDashboard() {
       <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
 
         <div className="flex items-center gap-3">
-
-          <SidebarMenuToggle />
 
           <LayoutDashboard className="h-8 w-8 text-green-600" aria-hidden />
 
@@ -302,7 +314,11 @@ function AdminDashboard() {
 
       </div>
 
-
+      {inventoryAlerts.length > 0 && (
+        <div className="mb-8">
+          <InventoryAlerts alerts={inventoryAlerts} compact />
+        </div>
+      )}
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -310,11 +326,17 @@ function AdminDashboard() {
 
           title={a.todayRevenue}
 
-          value={formatPrice(metrics.todayRevenue)}
+          value={formatPrice(metrics.todayNetRevenue ?? metrics.todayRevenue)}
 
           icon={<Banknote className="h-5 w-5 text-emerald-700" />}
 
           accent="bg-emerald-100"
+
+          hint={
+            (metrics.todayRefunds ?? 0) > 0
+              ? `Буцаалт: ${formatPrice(metrics.todayRefunds ?? 0)}`
+              : undefined
+          }
 
         />
 
@@ -432,7 +454,7 @@ function AdminDashboard() {
 
               />
 
-              <Bar dataKey="revenue" fill="#10b981" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="netRevenue" fill="#10b981" radius={[6, 6, 0, 0]} />
 
             </BarChart>
 

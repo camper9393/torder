@@ -1,6 +1,6 @@
 import type { IMenu, MenuSizeOption } from "@/types/menu"
 import type { Locale } from "@/utils/i18n/types"
-import { resolveOrderLinePrice } from "@/utils/orderLineMapping"
+import { resolveMenuUnitPrice } from "@/utils/orderLineMapping"
 import { parseMoneyAmount } from "@/utils/parseMoneyAmount"
 
 /** App UI locales; Korean uses Mongolian menu copy when EN fields are empty. */
@@ -88,7 +88,7 @@ export function resolveStoredPortionLabel(
 export function normalizeMenuSize(
   raw: Partial<MenuSizeOption> & Partial<BilingualMenuSize>
 ): BilingualMenuSize | null {
-  const price = Number(raw.price)
+  const price = parseMoneyAmount(raw.price)
   if (!Number.isFinite(price) || price < 0) return null
 
   const labelMn = String(raw.labelMn ?? raw.label ?? "").trim()
@@ -139,9 +139,14 @@ export function resolveMenuPrice(
   sizes?: BilingualMenuSize[]
 ): number {
   if (sizes?.length) {
-    return Math.min(...sizes.map((s) => s.price))
+    const portionPrices = sizes
+      .map((s) => s.price)
+      .filter((p) => Number.isFinite(p) && p >= 0)
+    if (portionPrices.length > 0) {
+      return Math.min(...portionPrices)
+    }
   }
-  return price
+  return Number.isFinite(price) && price >= 0 ? price : NaN
 }
 
 /** Read legacy + new DB fields into canonical bilingual shape. */
@@ -163,7 +168,14 @@ export function normalizeMenuDocument<T extends RawMenu>(
     fromDesc.descriptionEn
 
   const sizes = normalizeMenuSizes(doc.sizes)
-  const price = resolveMenuPrice(Number(doc.price ?? 0), sizes)
+  const record = doc as Record<string, unknown>
+  const basePrice =
+    parseMoneyAmount(doc.price) ??
+    parseMoneyAmount(record.salePrice) ??
+    parseMoneyAmount(record.selectedPrice) ??
+    parseMoneyAmount(record.finalPrice) ??
+    parseMoneyAmount(record.unitPrice)
+  const price = resolveMenuPrice(basePrice, sizes)
 
   return {
     ...doc,
@@ -313,39 +325,52 @@ export function menuNeedsPortionPicker(
   return (item.sizes?.length ?? 0) > 1
 }
 
-export function buildCheckoutLineFromMenu(
-  menu: IMenu,
-  size?: BilingualMenuSize
-): Omit<IMenu, "quantity"> & {
+export type CheckoutLineFromMenu = Omit<IMenu, "quantity"> & {
   cartLineKey: string
   selectedSizeLabelMn?: string
   selectedSizeLabelEn?: string
   itemCount?: number
-} {
+}
+
+export function buildCheckoutLineFromMenu(
+  menu: IMenu,
+  size?: BilingualMenuSize,
+  quantity = 1
+): CheckoutLineFromMenu | null {
   const normalized = normalizeMenuDocument(menu)
   const chosen =
     size ?? (normalized.sizes?.length === 1 ? normalized.sizes[0] : undefined)
-  const price = resolveOrderLinePrice({
-    selectedSize: chosen,
-    price: chosen ? undefined : normalized.price,
-  })
+
+  const unitPrice = resolveMenuUnitPrice(
+    {
+      ...normalized,
+      selectedSize: chosen,
+      selectedSizeLabelMn: chosen?.labelMn ?? size?.labelMn,
+      selectedSizeLabelEn: chosen?.labelEn ?? size?.labelEn,
+      menuItem: normalized,
+    },
+    {
+      debugLabel: normalized.title,
+      quantity,
+    }
+  )
+
+  if (unitPrice == null) {
+    return null
+  }
 
   const { quantity: _menuStock, ...menuWithoutStock } = normalized
 
-  const line = {
+  return {
     ...menuWithoutStock,
-    price: Number.isFinite(price) && price > 0 ? price : 0,
+    price: unitPrice,
     selectedSizeLabelMn: chosen?.labelMn,
     selectedSizeLabelEn: chosen?.labelEn,
-  }
-
-  return {
-    ...line,
     cartLineKey: checkoutLineKey({
       _id: String(menu._id),
-      price,
-      selectedSizeLabelMn: size?.labelMn,
-      selectedSizeLabelEn: size?.labelEn,
+      price: unitPrice,
+      selectedSizeLabelMn: chosen?.labelMn ?? size?.labelMn,
+      selectedSizeLabelEn: chosen?.labelEn ?? size?.labelEn,
     }),
   }
 }

@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
 
 
 
-    if (total <= 0) {
+    if (!Number.isFinite(total) || total < 0) {
 
       return sendRJResponse({
 

@@ -13,20 +13,46 @@ import {
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
-import { ArrowLeft, History } from "lucide-react"
+import { ArrowLeft, ChevronDown, ChevronUp, History } from "lucide-react"
 import { formatPrice } from "@/utils/currency"
 import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine } from "@/utils/menuBilingual"
 import LanguageSwitcher from "@/components/common/LanguageSwitcher"
 import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
+import RefundModal from "@/components/Refund/RefundModal"
+import { REFUND_STATUS_LABELS } from "@/types/refund"
+import { formatOrderNumber } from "@/utils/serializeKitchenOrder"
+import type { RefundStatus } from "@/model/order"
 
 type HistoryFilter = "all" | "today"
 
-function HistoryOrderCard({ order }: { order: KitchenOrder }) {
+function refundBadgeClass(status: RefundStatus) {
+  if (status === "full") return "bg-red-100 text-red-800"
+  if (status === "partial") return "bg-amber-100 text-amber-900"
+  return "bg-gray-100 text-gray-600"
+}
+
+function HistoryOrderCard({
+  order,
+  onRefundSuccess,
+}: {
+  order: KitchenOrder
+  onRefundSuccess: () => void
+}) {
   const { t, locale, dateLocale } = useLocale()
   const completedAt = order.updatedAt ?? order.createdAt
   const c = t.common
+  const [expanded, setExpanded] = React.useState(false)
+  const [refundOpen, setRefundOpen] = React.useState(false)
+
+  const paidAmount = order.paidAmount ?? order.total
+  const refundedAmount = order.refundedAmount ?? 0
+  const netAmount = paidAmount - refundedAmount
+  const refundStatus = order.refundStatus ?? "none"
+  const canRefund =
+    (order.status === "done" || order.status === "closed") &&
+    refundedAmount < paidAmount
 
   const formatDateTime = (value: string) =>
     new Date(value).toLocaleString(dateLocale, {
@@ -42,42 +68,127 @@ function HistoryOrderCard({ order }: { order: KitchenOrder }) {
             {order.tableName}
           </h3>
           <p className="mt-1 text-xs text-gray-500">
+            #{formatOrderNumber(order._id)}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
             {c.placed}: {formatDateTime(order.createdAt)}
           </p>
           <p className="text-xs text-gray-500">
             {c.completed}: {formatDateTime(completedAt)}
           </p>
         </div>
-        <Badge className="bg-green-100 text-green-800">
-          {labelOrderStatus(order.status, locale)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge className={refundBadgeClass(refundStatus)}>
+            {REFUND_STATUS_LABELS[refundStatus]}
+          </Badge>
+          <Badge className="bg-green-100 text-green-800">
+            {labelOrderStatus(order.status, locale)}
+          </Badge>
+        </div>
       </div>
 
       <ul className="mb-4 space-y-2 border-t pt-4">
         {order.items.map((item, idx) => (
           <li
             key={`${order._id}-${idx}`}
-            className="flex justify-between text-sm"
+            className="flex justify-between gap-2 text-sm"
           >
             <span>
               {formatOrderItemLine(item, locale, item.quantity)}
+              {(item.refundedQuantity ?? 0) > 0 && (
+                <span className="ml-1 text-xs text-amber-700">
+                  (буцаасан: {item.refundedQuantity})
+                </span>
+              )}
             </span>
-            <span className="text-gray-600">
+            <span className="shrink-0 text-gray-600">
               {formatPrice(item.price * item.quantity)}
             </span>
           </li>
         ))}
       </ul>
 
-      <div className="flex justify-between font-semibold text-gray-900">
-        <span>{c.total}</span>
-        <span>{formatPrice(order.total)}</span>
+      {expanded && (
+        <div className="mb-4 space-y-2 rounded-xl bg-gray-50 p-4 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Төлсөн дүн</span>
+            <span>{formatPrice(paidAmount)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Буцаалт</span>
+            <span className="text-red-600">-{formatPrice(refundedAmount)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Цэвэр дүн</span>
+            <span>{formatPrice(netAmount)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Төлбөрийн хэлбэр</span>
+            <span>{order.paymentMethod ?? "Бэлэн"}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div>
+          <div className="flex justify-between gap-6 text-sm text-gray-600">
+            <span>{c.total}</span>
+            <span className="line-through">{formatPrice(paidAmount)}</span>
+          </div>
+          <div className="flex justify-between gap-6 font-semibold text-gray-900">
+            <span>Цэвэр дүн</span>
+            <span>{formatPrice(netAmount)}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => setExpanded((v) => !v)}
+          >
+            {expanded ? (
+              <>
+                <ChevronUp className="mr-1 h-4 w-4" />
+                Хураах
+              </>
+            ) : (
+              <>
+                <ChevronDown className="mr-1 h-4 w-4" />
+                Дэлгэрэнгүй
+              </>
+            )}
+          </Button>
+          {canRefund && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="border-amber-300 text-amber-800 hover:bg-amber-50"
+              onClick={() => setRefundOpen(true)}
+            >
+              Refund
+            </Button>
+          )}
+        </div>
       </div>
+
+      <RefundModal
+        orderId={order._id}
+        open={refundOpen}
+        onOpenChange={setRefundOpen}
+        onSuccess={onRefundSuccess}
+      />
     </article>
   )
 }
 
-function HistoryPage() {
+type HistoryPageProps = {
+  variant?: "kitchen" | "reports"
+}
+
+function HistoryPage({ variant = "kitchen" }: HistoryPageProps) {
+  const isReports = variant === "reports"
   const { t, locale } = useLocale()
   const [orders, setOrders] = React.useState<KitchenOrder[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -86,6 +197,7 @@ function HistoryPage() {
   const c = t.common
 
   const fetchHistory = React.useCallback(async () => {
+    setLoading(true)
     const res = await getApi<ApiResponse<KitchenOrder[]>>({
       url: GET_COMPLETED_ORDER_HISTORY,
     })
@@ -119,33 +231,42 @@ function HistoryPage() {
     )
 
   return (
-    <div className="min-h-screen bg-[#F8F5F0]">
-      <div className="mx-auto max-w-4xl">
+    <div className={cn(!isReports && "min-h-screen bg-[#F8F5F0]")}>
+      <div
+        className={cn(
+          "mx-auto max-w-4xl",
+          isReports ? "px-0 py-0" : "px-4 py-6"
+        )}
+      >
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <SidebarMenuToggle />
+            {!isReports ? <SidebarMenuToggle /> : null}
             <History className="h-8 w-8 text-green-600" aria-hidden />
             <h1 className="font-serif text-3xl font-bold text-slate-950">
-              {h.title}
+              {isReports ? "Захиалгын түүх" : h.title}
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <LanguageSwitcher />
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-              className="border-green-600 text-green-700 hover:bg-green-50"
-            >
-              <Link href="/kitchen">
-                <ArrowLeft className="mr-1 h-4 w-4" aria-hidden />
-                {t.kitchen.backToKitchen}
-              </Link>
-            </Button>
+            {!isReports ? (
+              <Button
+                asChild
+                size="sm"
+                variant="outline"
+                className="border-green-600 text-green-700 hover:bg-green-50"
+              >
+                <Link href="/kitchen">
+                  <ArrowLeft className="mr-1 h-4 w-4" aria-hidden />
+                  {t.kitchen.backToKitchen}
+                </Link>
+              </Button>
+            ) : null}
           </div>
         </div>
 
-        <p className="mb-4 text-sm text-gray-600">{h.subtitle}</p>
+        <p className="mb-4 text-sm text-gray-600">
+          Дууссан болон төлөгдсөн захиалга. Буцаалт хийх бол Refund товчийг дарна уу.
+        </p>
 
         <div className="mb-8 flex gap-2">
           <button
@@ -183,7 +304,11 @@ function HistoryPage() {
 
               <div className="flex flex-col gap-4">
                 {section.orders.map((order) => (
-                  <HistoryOrderCard key={order._id} order={order} />
+                  <HistoryOrderCard
+                    key={order._id}
+                    order={order}
+                    onRefundSuccess={fetchHistory}
+                  />
                 ))}
               </div>
             </section>

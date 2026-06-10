@@ -33,7 +33,6 @@ import { usePolling } from "@/hooks/usePolling"
 import { TableFloorPlan, TableStatusLegendTooltip } from "./TableFloorPlan"
 import { HallSelectorBar } from "@/components/Admin/FloorLayout/HallSelectorBar"
 import AdminTableDetailModal from "./AdminTableDetailModal"
-import SidebarMenuToggle from "@/components/layout/SidebarMenuToggle"
 import { Button } from "@/components/ui/button"
 import {
   Tooltip,
@@ -91,7 +90,7 @@ function AdminTablesPage() {
   const merchantId = useAppSelector((state) => state.merchant).merchant?._id
   const merchantKey = merchantId ? String(merchantId) : undefined
 
-  const { soundEnabled, playDing, enableSound } = useKitchenDing()
+  const { soundEnabled, playDing, playWaiterDing, enableSound } = useKitchenDing()
 
   const fetchInFlightRef = React.useRef(false)
   const hasLoadedRef = React.useRef(false)
@@ -176,7 +175,7 @@ function AdminTablesPage() {
   useAdminTableWaiterCallSound(
     merchantKey,
     activeWaiterCallIds,
-    playDing,
+    playWaiterDing,
     soundEnabled
   )
 
@@ -500,7 +499,6 @@ function AdminTablesPage() {
       <div className="admin-tables-pos flex h-full min-h-0 w-full flex-col p-4">
         <header className="mb-2 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200/60 py-1">
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-            <SidebarMenuToggle />
             <LayoutGrid
               className="h-7 w-7 shrink-0 text-green-600"
               aria-hidden

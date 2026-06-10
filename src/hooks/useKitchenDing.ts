@@ -1,37 +1,65 @@
 "use client"
 
 import React from "react"
-import { getKitchenDingSrc } from "@/utils/kitchenDing"
+import { getNewOrderSoundSrc } from "@/utils/kitchenDing"
+import { getWaiterCallDingSrc } from "@/utils/waiterCallDing"
+
+const NEW_ORDER_SOUND_VOLUME = 0.8
+const WAITER_CALL_SOUND_VOLUME = 0.6
 
 export function useKitchenDing() {
   const [soundEnabled, setSoundEnabled] = React.useState(false)
   const soundEnabledRef = React.useRef(false)
-  const audioRef = React.useRef<HTMLAudioElement | null>(null)
+  const newOrderAudioRef = React.useRef<HTMLAudioElement | null>(null)
+  const waiterAudioRef = React.useRef<HTMLAudioElement | null>(null)
 
   React.useEffect(() => {
     soundEnabledRef.current = soundEnabled
   }, [soundEnabled])
 
-  const getAudio = React.useCallback(() => {
-    if (!audioRef.current) {
-      const src = getKitchenDingSrc()
+  const getNewOrderAudio = React.useCallback(() => {
+    if (!newOrderAudioRef.current) {
+      const src = getNewOrderSoundSrc()
       if (!src) return null
-      audioRef.current = new Audio(src)
-      audioRef.current.volume = 0.6
+      newOrderAudioRef.current = new Audio(src)
+      newOrderAudioRef.current.volume = NEW_ORDER_SOUND_VOLUME
+      newOrderAudioRef.current.addEventListener("error", () => {
+        newOrderAudioRef.current = null
+      })
     }
-    return audioRef.current
+    return newOrderAudioRef.current
   }, [])
 
-  const playDing = React.useCallback(() => {
+  const getWaiterAudio = React.useCallback(() => {
+    if (!waiterAudioRef.current) {
+      const src = getWaiterCallDingSrc()
+      if (!src) return null
+      waiterAudioRef.current = new Audio(src)
+      waiterAudioRef.current.volume = WAITER_CALL_SOUND_VOLUME
+    }
+    return waiterAudioRef.current
+  }, [])
+
+  const playClip = React.useCallback((getAudio: () => HTMLAudioElement | null) => {
     if (!soundEnabledRef.current) return
     const audio = getAudio()
     if (!audio) return
     audio.currentTime = 0
     void audio.play().catch(() => {})
-  }, [getAudio])
+  }, [])
+
+  /** New incoming order — /sounds/NewOrder.wav */
+  const playDing = React.useCallback(() => {
+    playClip(getNewOrderAudio)
+  }, [getNewOrderAudio, playClip])
+
+  /** Waiter call alert — generated short ding */
+  const playWaiterDing = React.useCallback(() => {
+    playClip(getWaiterAudio)
+  }, [getWaiterAudio, playClip])
 
   const enableSound = React.useCallback(async () => {
-    const audio = getAudio()
+    const audio = getNewOrderAudio() ?? getWaiterAudio()
     if (!audio) return false
     try {
       audio.currentTime = 0
@@ -42,9 +70,9 @@ export function useKitchenDing() {
     } catch {
       return false
     }
-  }, [getAudio])
+  }, [getNewOrderAudio, getWaiterAudio])
 
-  return { soundEnabled, playDing, enableSound }
+  return { soundEnabled, playDing, playWaiterDing, enableSound }
 }
 
 export function useNotifyNewKitchenItems<

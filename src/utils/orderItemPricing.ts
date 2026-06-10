@@ -20,6 +20,8 @@ import {
 
   validateOrderLinePrice,
 
+  type RawOrderItemLike,
+
 } from "@/utils/orderLineMapping"
 
 
@@ -32,49 +34,7 @@ export { parseMoneyAmount } from "@/utils/parseMoneyAmount"
 
 
 
-/** Raw order line from client/API — price may live on several fields (never tableName). */
-
-export type RawOrderItemLike = {
-
-  menuItemId?: string
-
-  title?: string
-
-  nameMn?: string
-
-  nameEn?: string
-
-  selectedSizeLabelMn?: string
-
-  selectedSizeLabelEn?: string
-
-  price?: unknown
-
-  selectedPrice?: unknown
-
-  selectedSize?: unknown
-
-  size?: unknown
-
-  unitPrice?: unknown
-
-  menuItem?: unknown
-
-  itemCount?: unknown
-
-  qty?: unknown
-
-  count?: unknown
-
-  orderQuantity?: unknown
-
-  quantity?: unknown
-
-  image?: string
-
-  served?: boolean
-
-}
+export type { RawOrderItemLike }
 
 
 

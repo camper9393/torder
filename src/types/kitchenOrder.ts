@@ -1,4 +1,5 @@
-import { OrderStatus } from "@/model/order"
+import { OrderStatus, RefundStatus } from "@/model/order"
+import type { RefundedLineItem } from "@/types/refund"
 
 export type KitchenOrder = {
   _id: string
@@ -15,9 +16,15 @@ export type KitchenOrder = {
     quantity: number
     image?: string
     served?: boolean
+    refundedQuantity?: number
   }[]
   total: number
   status: OrderStatus
+  paymentMethod?: string
+  paidAmount?: number
+  refundStatus?: RefundStatus
+  refundedAmount?: number
+  refundedItems?: RefundedLineItem[]
   createdAt: string
   updatedAt?: string
 }

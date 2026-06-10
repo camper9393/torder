@@ -36,7 +36,7 @@ export function resolveLineItemUnitPrice(item: BillableLineItem): number {
 
   const n = resolveOrderLinePrice(item)
 
-  return Number.isFinite(n) && n > 0 ? n : 0
+  return Number.isFinite(n) && n >= 0 ? n : 0
 
 }
 

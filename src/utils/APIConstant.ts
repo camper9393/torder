@@ -31,6 +31,25 @@ export const GET_KITCHEN_ORDERS: string = "/kitchen/orders"
 export const PATCH_KITCHEN_ORDER: string = "/kitchen/orders"
 export const GET_COMPLETED_ORDER_HISTORY: string = "/kitchen/history"
 
+// refunds
+export const POST_REFUND: string = "/refunds"
+export const GET_REFUNDS: string = "/refunds"
+export const GET_REFUND_ELIGIBILITY = (orderId: string) =>
+  `/refunds/eligibility/${orderId}`
+
+// admin reports
+export const GET_ADMIN_REPORTS_SALES: string = "/admin/reports/sales"
+export const GET_ADMIN_REPORTS_SUMMARY: string = "/admin/reports/summary"
+export const GET_ADMIN_REPORTS_ORDER_HISTORY: string =
+  "/admin/reports/order-history"
+export const GET_ADMIN_REPORTS_REFUNDS: string = "/admin/reports/refunds"
+export const GET_ADMIN_REPORTS_PRODUCTS: string = "/admin/reports/products"
+export const GET_ADMIN_REPORTS_TRANSACTIONS: string =
+  "/admin/reports/transactions"
+export const GET_ADMIN_REPORTS_KITCHEN: string = "/admin/reports/kitchen"
+export const GET_ADMIN_REPORTS_WAITERS: string = "/admin/reports/waiters"
+export const GET_ADMIN_REPORTS_VAT: string = "/admin/reports/vat"
+
 // table management
 export const GET_TABLES: string = "/tables"
 export const GET_TABLE_DETAIL: string = "/tables"
@@ -50,6 +69,21 @@ export const PATCH_WAITER_CALL: string = "/waiter-call"
 
 // admin dashboard
 export const GET_ADMIN_DASHBOARD: string = "/admin/dashboard"
+
+// inventory
+export const GET_INVENTORY_DASHBOARD: string = "/inventory/dashboard"
+export const GET_INVENTORY_ITEMS: string = "/inventory/items"
+export const POST_INVENTORY_ITEM: string = "/inventory/items"
+export const PATCH_INVENTORY_ITEM = (id: string) => `/inventory/items/${id}`
+export const DELETE_INVENTORY_ITEM = (id: string) => `/inventory/items/${id}`
+export const POST_INVENTORY_STOCK_IN: string = "/inventory/stock-in"
+export const GET_INVENTORY_TRANSACTIONS: string = "/inventory/transactions"
+export const GET_INVENTORY_RECIPES: string = "/inventory/recipes"
+export const PUT_INVENTORY_RECIPE = (menuItemId: string) =>
+  `/inventory/recipes/${menuItemId}`
+export const DELETE_INVENTORY_RECIPE = (menuItemId: string) =>
+  `/inventory/recipes/${menuItemId}`
+export const GET_INVENTORY_REPORTS: string = "/inventory/reports"
 
 // dashboard
 export const GET_DASHBOARD_MATRICES: string = "/dashboard/matrices"

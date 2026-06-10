@@ -228,22 +228,45 @@
   }
 }
 
-@keyframes admin-table-new-pulse {
+/* Шинэ захиалга — нэг цэнхэр хүрээ л анивчина (давхар хүрээгүй) */
+@keyframes admin-table-new-border-blink {
   0%,
   100% {
-    box-shadow:
-      0 2px 12px rgba(15, 23, 42, 0.08),
-      0 0 0 0 rgba(239, 68, 68, 0);
+    opacity: 1;
+    box-shadow: inset 0 0 0 2px #2563eb;
   }
   50% {
-    box-shadow:
-      0 4px 20px rgba(15, 23, 42, 0.1),
-      0 0 20px 4px rgba(239, 68, 68, 0.35);
+    opacity: 0.2;
+    box-shadow: inset 0 0 0 2px #2563eb;
   }
 }
 
+.floor-plan-table-card.admin-table-card--new,
 .admin-table-card--new {
-  animation: admin-table-new-pulse 2.5s ease-in-out infinite;
+  position: relative !important;
+  /* Tailwind-ийн статик цэнхэр хүрээг нууж, зөвхөн ::after харуулна */
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+.floor-plan-table-card.admin-table-card--new::after,
+.admin-table-card--new::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px #2563eb;
+  animation: admin-table-new-border-blink 1.15s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floor-plan-table-card.admin-table-card--new::after,
+  .admin-table-card--new::after {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 /* Touch-friendly admin tables / POS */

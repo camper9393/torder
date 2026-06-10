@@ -1,7 +1,10 @@
 import { OrderStatus } from "@/model/order"
+import type { InventoryAlert } from "@/types/inventory"
 
 export type AdminDashboardMetrics = {
   todayRevenue: number
+  todayRefunds: number
+  todayNetRevenue: number
   todayOrders: number
   activeOrders: number
   completedOrders: number
@@ -26,6 +29,8 @@ export type AdminDayStat = {
   date: string
   label: string
   revenue: number
+  refunds: number
+  netRevenue: number
   orders: number
 }
 
@@ -36,4 +41,5 @@ export type AdminDashboardData = {
   recentOrders: AdminRecentOrder[]
   revenueByDay: AdminDayStat[]
   ordersByDay: AdminDayStat[]
+  inventoryAlerts: InventoryAlert[]
 }

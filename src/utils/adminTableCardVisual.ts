@@ -18,6 +18,11 @@ export type TableCardVisualState =
 
 
 
+/** Шинэ захиалгатай ширээ — цэнхэр хүрээ анивчина. */
+export function isNewOrderTableState(state: TableCardVisualState): boolean {
+  return state === "new"
+}
+
 export function getTableCardVisualState(
 
   table: TableSummary
@@ -132,9 +137,9 @@ export const tableCardVisualStyles: Record<
 
   new: {
 
-    card: "border-2 border-blue-500 bg-blue-50 text-slate-900 shadow-sm",
+    card: "border-2 border-[#2563eb] bg-blue-50/90 text-slate-900 shadow-sm",
 
-    statusPill: "bg-blue-600 text-white",
+    statusPill: "bg-[#2563eb] text-white",
 
     elapsed: "text-blue-700",
 

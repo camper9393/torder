@@ -9,6 +9,7 @@ import {
 import {
   buildTicketItemList,
   getTableCardVisualState,
+  isNewOrderTableState,
   tableCardVisualStyles,
 } from "@/utils/adminTableCardVisual"
 import { formatOrderElapsed } from "@/utils/formatOrderElapsed"
@@ -187,6 +188,7 @@ type FloorPlanTableCardProps = {
   showElapsed: boolean
   acceptingNewOrders?: boolean
   isNew: boolean
+  blinkNewOrder?: boolean
   onAcceptNewOrders?: () => void
   onOpen: () => void
 }
@@ -201,6 +203,7 @@ function FloorPlanTableCard({
   showElapsed,
   acceptingNewOrders,
   isNew,
+  blinkNewOrder = false,
   onAcceptNewOrders,
   onOpen,
 }: FloorPlanTableCardProps) {
@@ -220,7 +223,11 @@ function FloorPlanTableCard({
   return (
     <div
       onClick={handleActivate}
-      className={cn("floor-plan-table-card", visual.card)}
+      className={cn(
+        "floor-plan-table-card",
+        visual.card,
+        blinkNewOrder && "admin-table-card--new"
+      )}
       data-floor-status={visualState}
     >
       <div className="floor-card-body">
@@ -269,7 +276,8 @@ function AdminTableCard({
   const freePos = adminTablePosStyles.free
   const visualState = getTableCardVisualState(table)
   const visual = tableCardVisualStyles[visualState]
-  const isNew = visualState === "new"
+  const isNew = isNewOrderTableState(visualState)
+  const blinkNewOrder = isNew && !layoutDragActive
   const isEmpty = visualState === "empty"
   const displayName = formatTableDisplayName(
     table.tableName,
@@ -336,7 +344,7 @@ function AdminTableCard({
     useReorderDrag && (layoutDragActive ? "cursor-grabbing" : "cursor-grab"),
     !useReorderDrag && "cursor-pointer",
     visual.card,
-    isNew && !layoutDragActive && "admin-table-card--new",
+    blinkNewOrder && "admin-table-card--new",
     isDragging && "scale-[0.98] opacity-50",
     isDropTarget && "ring-2 ring-[#1E5EFF] ring-offset-2"
   )
@@ -352,6 +360,7 @@ function AdminTableCard({
         showElapsed={showElapsed}
         acceptingNewOrders={acceptingNewOrders}
         isNew={isNew}
+        blinkNewOrder={blinkNewOrder}
         onAcceptNewOrders={onAcceptNewOrders}
         onOpen={onOpen}
       />

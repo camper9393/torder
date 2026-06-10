@@ -1,8 +1,5 @@
-import React from "react"
-import History from "@/components/History"
+import { redirect } from "next/navigation"
 
-function page() {
-  return <History />
+export default function HistoryRedirectPage() {
+  redirect("/reports/order-history")
 }
-
-export default page

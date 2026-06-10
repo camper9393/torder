@@ -7,6 +7,16 @@ export type OrderStatus =
   | "done"
   | "closed";
 
+export type RefundStatus = "none" | "partial" | "full";
+
+export interface IRefundedLineItem {
+  lineIndex: number;
+  menuItemId?: mongoose.Types.ObjectId;
+  title: string;
+  quantityRefunded: number;
+  amountRefunded: number;
+}
+
 export interface IOrderItem {
   menuItemId?: mongoose.Types.ObjectId;
   title: string;
@@ -29,6 +39,11 @@ export interface IOrder {
   items: IOrderItem[];
   total: number;
   status: OrderStatus;
+  paymentMethod?: string;
+  paidAmount?: number;
+  refundStatus?: RefundStatus;
+  refundedAmount?: number;
+  refundedItems?: IRefundedLineItem[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +83,26 @@ const orderSchema = new mongoose.Schema<IOrder>(
       type: String,
       enum: ["new", "accepted", "cooking", "done", "closed"],
       default: "new",
+    },
+    paymentMethod: { type: String, trim: true },
+    paidAmount: { type: Number, min: 0 },
+    refundStatus: {
+      type: String,
+      enum: ["none", "partial", "full"],
+      default: "none",
+    },
+    refundedAmount: { type: Number, default: 0, min: 0 },
+    refundedItems: {
+      type: [
+        {
+          lineIndex: { type: Number, required: true, min: 0 },
+          menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: "menus" },
+          title: { type: String, required: true, trim: true },
+          quantityRefunded: { type: Number, required: true, min: 0 },
+          amountRefunded: { type: Number, required: true, min: 0 },
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }

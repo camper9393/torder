@@ -67,10 +67,10 @@ function KitchenTv() {
   const k = t.kitchen
   const c = t.common
 
-  const { soundEnabled, playDing, enableSound } = useKitchenDing()
+  const { soundEnabled, playDing, playWaiterDing, enableSound } = useKitchenDing()
 
   useNotifyNewKitchenItems(orders, "new", playDing)
-  useNotifyNewKitchenItems(waiterCalls, "new", playDing)
+  useNotifyNewKitchenItems(waiterCalls, "new", playWaiterDing)
 
   const fetchData = React.useCallback(async () => {
     const [ordersRes, callsRes] = await Promise.all([
