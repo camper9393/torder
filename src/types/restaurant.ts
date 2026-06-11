@@ -1,0 +1,21 @@
+export type RestaurantPlan = "starter" | "business" | "enterprise";
+export type SubscriptionStatus = "active" | "expired" | "suspended";
+
+export interface Restaurant {
+  _id: string;
+  name: string;
+  slug: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  plan: RestaurantPlan;
+  subscriptionStatus: SubscriptionStatus;
+  startDate: string;
+  expireDate: string;
+  maxTables: number;
+  maxUsers: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

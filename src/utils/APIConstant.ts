@@ -4,6 +4,18 @@ export const SESSION: string = "/auth/session"
 export const MERCHANT_SIGNIN: string = "/auth/signin"
 export const LOGIN: string = "/auth/signup"
 export const LOGOUT: string = "/auth/logout"
+export const USER_LOGIN: string = "/auth/login"
+export const USER_ME: string = "/auth/me"
+
+// platform restaurants
+export const GET_PLATFORM_RESTAURANTS: string = "/platform/restaurants"
+export const POST_PLATFORM_RESTAURANT: string = "/platform/restaurants"
+export const platformRestaurantById = (id: string) => `/platform/restaurants/${id}`
+export const PATCH_PLATFORM_RESTAURANT = (id: string) => `/platform/restaurants/${id}`
+export const POST_PLATFORM_RESTAURANT_ACTIVATE = (id: string) =>
+  `/platform/restaurants/${id}/activate`
+export const POST_PLATFORM_RESTAURANT_DEACTIVATE = (id: string) =>
+  `/platform/restaurants/${id}/deactivate`
 
 // Menu
 export const MENUBUILDER_LISTS: string = "/menu/lists"
@@ -69,6 +81,9 @@ export const PATCH_WAITER_CALL: string = "/waiter-call"
 
 // admin dashboard
 export const GET_ADMIN_DASHBOARD: string = "/admin/dashboard"
+
+// database backup
+export const GET_DATABASE_BACKUP: string = "/backup"
 
 // inventory
 export const GET_INVENTORY_DASHBOARD: string = "/inventory/dashboard"
