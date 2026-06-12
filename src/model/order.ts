@@ -34,6 +34,7 @@ export interface IOrderItem {
 export interface IOrder {
   _id: mongoose.Types.ObjectId;
   merchantId: mongoose.Types.ObjectId;
+  restaurantId?: mongoose.Types.ObjectId;
   userId?: mongoose.Types.ObjectId;
   tableName: string;
   items: IOrderItem[];
@@ -71,6 +72,11 @@ const orderSchema = new mongoose.Schema<IOrder>(
       required: true,
       ref: "merchants",
     },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "restaurants",
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "merchants",
@@ -107,6 +113,13 @@ const orderSchema = new mongoose.Schema<IOrder>(
   },
   { timestamps: true }
 );
+
+if (mongoose.models.orders) {
+  const schema = mongoose.models.orders.schema;
+  if (!schema.path("restaurantId")) {
+    mongoose.deleteModel("orders");
+  }
+}
 
 export const Order =
   mongoose.models.orders || mongoose.model<IOrder>("orders", orderSchema);

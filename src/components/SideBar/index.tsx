@@ -45,7 +45,10 @@ import { useLocale } from "@/context/LocaleContext"
 import { postApi } from "@/utils/common"
 import { LOGOUT } from "@/utils/APIConstant"
 import { cn } from "@/lib/utils"
+import { canAccessSidebarNav, type SidebarNavKey } from "@/lib/sidebarPermissions"
+import { useSidebarUser } from "@/hooks/useSidebarUser"
 import SidebarHoverExpand from "./SidebarHoverExpand"
+import { SidebarNavItem } from "./SidebarNavItem"
 
 const SIDEBAR_LOGO_CANDIDATES = [
   "/img/Torder%20LOGO.png",
@@ -76,18 +79,28 @@ const UTILITY_BTN_COLLAPSED_CLASS =
 
 const UTILITY_NAV_ITEMS: NavItem[] = [
   {
+    navKey: "help",
     title: "Тусламж",
     url: "/admin/help",
     icon: CircleHelp,
     isActive: (p) => matchPath(p, "/admin/help"),
   },
   {
+    navKey: "staff",
+    title: "Ажилтан",
+    url: "/admin/staff",
+    icon: Users,
+    isActive: (p) => matchPath(p, "/admin/staff"),
+  },
+  {
+    navKey: "settings",
     title: "Тохиргоо",
     url: "/admin/settings",
     icon: Settings,
     isActive: (p) => matchPath(p, "/admin/settings"),
   },
   {
+    navKey: "profile",
     title: "Хэрэглэгч",
     url: "/admin/profile",
     icon: User,
@@ -96,6 +109,7 @@ const UTILITY_NAV_ITEMS: NavItem[] = [
 ]
 
 type NavItem = {
+  navKey: SidebarNavKey
   title: string
   url: string
   icon: ComponentType<{ className?: string }>
@@ -148,17 +162,19 @@ export default function AppSidebar() {
   const pathname = usePathname() ?? ""
   const { state, setOpen, isMobile } = useSidebar()
   const { t } = useLocale()
+  const { user } = useSidebarUser()
   const n = t.nav
   const sidebarExpanded = state === "expanded"
   const [logoCandidateIndex, setLogoCandidateIndex] = useState(0)
   const logoSrc = SIDEBAR_LOGO_CANDIDATES[logoCandidateIndex] ?? SIDEBAR_LOGO_CANDIDATES[0]
 
   const reportsActive = pathname.startsWith("/admin/reports")
+  const reportsAllowed = canAccessSidebarNav(user, "reports")
   const [reportsOpen, setReportsOpen] = useState(reportsActive)
 
   useEffect(() => {
-    if (reportsActive) setReportsOpen(true)
-  }, [reportsActive])
+    if (reportsActive && reportsAllowed) setReportsOpen(true)
+  }, [reportsActive, reportsAllowed])
 
   const handleLogoError = useCallback(() => {
     setLogoCandidateIndex((prev) => {
@@ -171,30 +187,35 @@ export default function AppSidebar() {
   const navItems: NavItem[] = useMemo(
     () => [
       {
+        navKey: "dashboard",
         title: "Нүүр",
         url: "/admin/dashboard",
         icon: Home,
         isActive: (p) => matchPath(p, "/admin/dashboard"),
       },
       {
+        navKey: "tables",
         title: "Үйлчилгээний самбар",
         url: "/admin/tables",
         icon: PanelsTopLeft,
         isActive: (p) => matchPath(p, "/admin/tables"),
       },
       {
+        navKey: "delivery",
         title: "Хүргэлт",
         url: "/admin/delivery",
         icon: Truck,
         isActive: (p) => matchPath(p, "/admin/delivery"),
       },
       {
+        navKey: "menu",
         title: "Цэс",
         url: "/menu",
         icon: Utensils,
         isActive: (p) => matchPath(p, "/menu"),
       },
       {
+        navKey: "inventory",
         title: "Inventory",
         url: "/inventory",
         icon: Package,
@@ -202,12 +223,14 @@ export default function AppSidebar() {
           matchPath(p, "/inventory") || matchPath(p, "/admin/inventory"),
       },
       {
+        navKey: "tablet-order",
         title: "Tablet order",
         url: "/admin/tablet-order",
         icon: Tablet,
         isActive: (p) => matchPath(p, "/admin/tablet-order"),
       },
       {
+        navKey: "kitchen",
         title: "Гал тогоо",
         url: "/admin/kitchen",
         icon: CookingPot,
@@ -221,19 +244,20 @@ export default function AppSidebar() {
   const handleLogOut = useCallback(async () => {
     if (typeof window === "undefined") return
     await postApi({ url: LOGOUT })
-    window.location.href = "/"
+    window.location.href = "/login"
   }, [])
 
   const logoNavActive = pathname === "/"
 
   const handleReportsToggle = useCallback(() => {
+    if (!reportsAllowed) return
     if (!sidebarExpanded && !isMobile) {
       setOpen(true)
       setReportsOpen(true)
       return
     }
     setReportsOpen((open) => !open)
-  }, [isMobile, setOpen, sidebarExpanded])
+  }, [isMobile, reportsAllowed, setOpen, sidebarExpanded])
 
   return (
     <>
@@ -278,68 +302,58 @@ export default function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {navItems.map((item) => {
-                const active = item.isActive(pathname)
-                return (
-                  <SidebarMenuItem
-                    key={item.title}
-                    className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
-                  >
-                    <SidebarMenuButton
-                      asChild
-                      isActive={active}
-                      tooltip={item.title}
-                      className={cn(MENU_BTN_CLASS, MENU_BTN_COLLAPSED_CLASS)}
+              {navItems.map((item) => (
+                <SidebarNavItem
+                  key={item.navKey}
+                  navKey={item.navKey}
+                  user={user}
+                  title={item.title}
+                  href={item.url}
+                  isActive={item.isActive(pathname)}
+                  icon={item.icon}
+                  itemClassName="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+                  menuButtonClassName={cn(MENU_BTN_CLASS, MENU_BTN_COLLAPSED_CLASS)}
+                  linkClassName={cn("flex items-center gap-3", LINK_COLLAPSED_CLASS)}
+                  labelClassName={cn(
+                    "truncate transition-opacity duration-200",
+                    LABEL_COLLAPSED_CLASS,
+                    sidebarExpanded ? "opacity-100" : "opacity-0"
+                  )}
+                />
+              ))}
+
+              <SidebarNavItem
+                navKey="reports"
+                user={user}
+                title="Тайлан"
+                isActive={reportsActive}
+                icon={BarChart3}
+                asButton
+                onClick={handleReportsToggle}
+                itemClassName="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+                menuButtonClassName={cn(MENU_BTN_CLASS, MENU_BTN_COLLAPSED_CLASS)}
+                label={
+                  <>
+                    <span
+                      className={cn(
+                        "flex-1 truncate text-left transition-opacity duration-200",
+                        LABEL_COLLAPSED_CLASS,
+                        sidebarExpanded ? "opacity-100" : "opacity-0"
+                      )}
                     >
-                      <Link
-                        href={item.url}
-                        className={cn("flex items-center gap-3", LINK_COLLAPSED_CLASS)}
-                      >
-                        <item.icon className="h-5 w-5 shrink-0" />
-                        <span
-                          className={cn(
-                            "truncate transition-opacity duration-200",
-                            LABEL_COLLAPSED_CLASS,
-                            sidebarExpanded ? "opacity-100" : "opacity-0"
-                          )}
-                        >
-                          {item.title}
-                        </span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-
-              <SidebarMenuItem className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-                <SidebarMenuButton
-                  type="button"
-                  isActive={reportsActive}
-                  tooltip="Тайлан"
-                  data-state={reportsOpen ? "open" : "closed"}
-                  onClick={handleReportsToggle}
-                  className={cn(MENU_BTN_CLASS, MENU_BTN_COLLAPSED_CLASS)}
-                >
-                  <BarChart3 className="h-5 w-5 shrink-0" />
-                  <span
-                    className={cn(
-                      "flex-1 truncate text-left transition-opacity duration-200",
-                      LABEL_COLLAPSED_CLASS,
-                      sidebarExpanded ? "opacity-100" : "opacity-0"
-                    )}
-                  >
-                    Тайлан
-                  </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 shrink-0 opacity-70 transition-transform duration-200",
-                      reportsOpen && "rotate-180",
-                      !sidebarExpanded && "hidden"
-                    )}
-                  />
-                </SidebarMenuButton>
-
-                {reportsOpen ? (
+                      Тайлан
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 opacity-70 transition-transform duration-200",
+                        reportsOpen && reportsAllowed && "rotate-180",
+                        !sidebarExpanded && "hidden"
+                      )}
+                    />
+                  </>
+                }
+              >
+                {reportsOpen && reportsAllowed ? (
                   <SidebarMenuSub>
                     {REPORT_NAV_ITEMS.map((item) => {
                       const active =
@@ -366,7 +380,7 @@ export default function AppSidebar() {
                     })}
                   </SidebarMenuSub>
                 ) : null}
-              </SidebarMenuItem>
+              </SidebarNavItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -375,38 +389,26 @@ export default function AppSidebar() {
       <SidebarFooter className="mt-auto p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:py-2">
         <div className="border-t border-slate-200 pt-1.5">
           <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-0.5">
-            {UTILITY_NAV_ITEMS.map((item) => {
-              const active = item.isActive(pathname)
-              return (
-                <SidebarMenuItem
-                  key={item.url}
-                  className="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
-                >
-                  <SidebarMenuButton
-                    asChild
-                    isActive={active}
-                    tooltip={item.title}
-                    className={cn(UTILITY_BTN_CLASS, UTILITY_BTN_COLLAPSED_CLASS)}
-                  >
-                    <Link
-                      href={item.url}
-                      className={cn("flex items-center gap-2", LINK_COLLAPSED_CLASS)}
-                    >
-                      <item.icon className="h-4 w-4 shrink-0 opacity-80" />
-                      <span
-                        className={cn(
-                          "truncate transition-opacity duration-200",
-                          LABEL_COLLAPSED_CLASS,
-                          sidebarExpanded ? "opacity-100" : "opacity-0"
-                        )}
-                      >
-                        {item.title}
-                      </span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
+            {UTILITY_NAV_ITEMS.map((item) => (
+              <SidebarNavItem
+                key={item.navKey}
+                navKey={item.navKey}
+                user={user}
+                title={item.title}
+                href={item.url}
+                isActive={item.isActive(pathname)}
+                icon={item.icon}
+                iconClassName="h-4 w-4 shrink-0 opacity-80"
+                itemClassName="group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center"
+                menuButtonClassName={cn(UTILITY_BTN_CLASS, UTILITY_BTN_COLLAPSED_CLASS)}
+                linkClassName={cn("flex items-center gap-2", LINK_COLLAPSED_CLASS)}
+                labelClassName={cn(
+                  "truncate transition-opacity duration-200",
+                  LABEL_COLLAPSED_CLASS,
+                  sidebarExpanded ? "opacity-100" : "opacity-0"
+                )}
+              />
+            ))}
           </SidebarMenu>
         </div>
 

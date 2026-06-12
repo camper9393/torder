@@ -6,6 +6,7 @@ import { deductInventoryForOrder } from "@/utils/inventoryDeduction";
 import { ACTIVE_TABLE_ORDER_STATUSES } from "@/utils/tableManagement";
 import { isValidObjectId, Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
+import { scopedMerchantQuery } from "@/utils/tenantQuery";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,13 +23,16 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const filter: Record<string, unknown> = {
+    let filter: Record<string, unknown> = {
       tableName: tableName.trim(),
       status: { $in: ACTIVE_TABLE_ORDER_STATUSES },
     };
 
     if (merchantId && isValidObjectId(merchantId)) {
-      filter.merchantId = new Types.ObjectId(merchantId);
+      filter = {
+        ...filter,
+        ...(await scopedMerchantQuery(new Types.ObjectId(merchantId))),
+      };
     }
 
     const orders = await Order.find(filter).lean<IOrder[]>();

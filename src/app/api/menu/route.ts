@@ -1,19 +1,26 @@
-import { verifyAuth } from "@/middleware/auth";
 import { Menu } from "@/model/menu";
 import { sendRJResponse } from "@/utils/api";
 import { NextRequest } from "next/server";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
+import { withRestaurantId } from "@/utils/tenantQuery";
+import { Types } from "mongoose";
 
 export async function DELETE(req: NextRequest) {
   try {
-    const merchantId = await verifyAuth(req);
-
-    if (!merchantId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Нэвтрэх шаардлагатай",
+        status: scope.status,
       });
     }
+
+    const merchantId = scope.merchantId!;
 
     const section = req.nextUrl.searchParams.get("section");
 
@@ -25,10 +32,15 @@ export async function DELETE(req: NextRequest) {
       });
     }
 
-    const result = await Menu.deleteMany({
-      merchantId,
-      section,
-    });
+    const result = await Menu.deleteMany(
+      withRestaurantId(
+        {
+          merchantId: new Types.ObjectId(String(merchantId)),
+          section,
+        },
+        scope.restaurantId
+      )
+    );
 
     return sendRJResponse({
       success: true,

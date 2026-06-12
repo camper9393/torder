@@ -7,6 +7,7 @@ export interface ISectionMetaEntry {
 
 export interface IMenuOrder {
   merchantId: mongoose.Types.ObjectId;
+  restaurantId?: mongoose.Types.ObjectId;
   sectionOrder: string[];
   itemOrders: Record<string, string[]>;
   sectionIcons: Record<string, string>;
@@ -22,6 +23,11 @@ const menuOrderSchema = new mongoose.Schema<IMenuOrder>(
       ref: "merchants",
       required: true,
       unique: true,
+      index: true,
+    },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "restaurants",
       index: true,
     },
     sectionOrder: { type: [String], default: [] },

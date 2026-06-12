@@ -5,6 +5,7 @@ export type TableShape = "rectangle" | "circle";
 export interface ITableLayout {
   _id: mongoose.Types.ObjectId;
   merchantId: mongoose.Types.ObjectId;
+  restaurantId?: mongoose.Types.ObjectId;
   tableName: string;
   normalizedTableName: string;
   description: string;
@@ -28,6 +29,10 @@ const tableLayoutSchema = new mongoose.Schema<ITableLayout>(
       required: true,
       index: true,
     },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "restaurants",
+    },
     tableName: { type: String, required: true, trim: true },
     normalizedTableName: { type: String, required: true, trim: true, lowercase: true },
     description: { type: String, default: "" },
@@ -47,7 +52,7 @@ const tableLayoutSchema = new mongoose.Schema<ITableLayout>(
 );
 
 tableLayoutSchema.index(
-  { merchantId: 1, normalizedTableName: 1 },
+  { merchantId: 1, restaurantId: 1, normalizedTableName: 1 },
   { unique: true }
 );
 
@@ -56,6 +61,19 @@ tableLayoutSchema.pre("validate", function setNormalizedTableName() {
     this.normalizedTableName = this.tableName.trim().toLowerCase();
   }
 });
+
+const existingTableLayoutModel = mongoose.models.table_layouts;
+if (existingTableLayoutModel) {
+  const hasRestaurantTenantIndex = existingTableLayoutModel.schema
+    .indexes()
+    .some(
+      ([fields]: [Record<string, unknown>]) =>
+        Object.prototype.hasOwnProperty.call(fields, "restaurantId")
+    );
+  if (!hasRestaurantTenantIndex) {
+    mongoose.deleteModel("table_layouts");
+  }
+}
 
 export const TableLayout =
   mongoose.models.table_layouts ||

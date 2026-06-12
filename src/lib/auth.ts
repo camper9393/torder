@@ -1,9 +1,11 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import mongoServer from "@/config/mongoConfig";
+import { canAccessStaffManagement } from "@/lib/permissions";
 import { IUser, User, UserRole } from "@/model/user";
 import { toPublicUser, type PublicUser } from "@/service/userAuth";
 import { verifyUserToken } from "@/utils/userJwt";
+import { isValidObjectId, Types } from "mongoose";
 
 export const USER_TOKEN_COOKIE = "user_token";
 
@@ -91,4 +93,83 @@ export async function requirePlatformOwner(
   }
 
   return authResult;
+}
+
+export async function requireRoles(
+  req: NextRequest,
+  roles: UserRole | UserRole[]
+): Promise<IUser | NextResponse> {
+  const authResult = await requireAuth(req);
+
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
+  if (!hasRole(authResult, roles)) {
+    return NextResponse.json(
+      { success: false, message: "Хандах эрхгүй" },
+      { status: 403 }
+    );
+  }
+
+  return authResult;
+}
+
+export async function requireStaffManager(
+  req: NextRequest
+): Promise<IUser | NextResponse> {
+  const authResult = await requireAuth(req);
+
+  if (authResult instanceof NextResponse) {
+    return authResult;
+  }
+
+  if (!canAccessStaffManagement(authResult)) {
+    return NextResponse.json(
+      { success: false, message: "Ажилтан удирдах эрхгүй" },
+      { status: 403 }
+    );
+  }
+
+  return authResult;
+}
+
+/** Resolve which restaurant's staff the actor may access */
+export async function resolveStaffRestaurantId(
+  req: NextRequest,
+  actor: IUser,
+  queryRestaurantId?: string | null
+): Promise<Types.ObjectId | NextResponse> {
+  if (actor.role === UserRole.PLATFORM_OWNER) {
+    if (queryRestaurantId && isValidObjectId(queryRestaurantId)) {
+      return new Types.ObjectId(queryRestaurantId);
+    }
+    const { resolveDefaultLegacyRestaurantId } = await import("@/lib/tenant");
+    const legacyId = await resolveDefaultLegacyRestaurantId();
+    if (legacyId) return legacyId;
+    return NextResponse.json(
+      { success: false, message: "restaurantId заавал шаардлагатай" },
+      { status: 400 }
+    );
+  }
+
+  if (!actor.restaurantId) {
+    return NextResponse.json(
+      { success: false, message: "Ресторанд хамаарахгүй хэрэглэгч" },
+      { status: 403 }
+    );
+  }
+
+  if (
+    queryRestaurantId &&
+    isValidObjectId(queryRestaurantId) &&
+    String(actor.restaurantId) !== queryRestaurantId
+  ) {
+    return NextResponse.json(
+      { success: false, message: "Өөр рестораны ажилтан харах эрхгүй" },
+      { status: 403 }
+    );
+  }
+
+  return new Types.ObjectId(String(actor.restaurantId));
 }

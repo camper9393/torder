@@ -1,11 +1,11 @@
 import mongoServer from "@/config/mongoConfig";
-import { verifyAuth } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import { Order, OrderStatus } from "@/model/order";
 import { Refund } from "@/model/refund";
 import { sendRJResponse } from "@/utils/api";
 import { getInventoryAlerts } from "@/utils/inventoryDeduction";
-import mongoose, { Types } from "mongoose";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -32,25 +32,23 @@ function buildLast7Days(): { date: string; label: string }[] {
   return days;
 }
 
-async function resolveMerchantId(req: NextRequest) {
-  const authResult = await verifyAuth(req);
-  if (authResult instanceof NextResponse) return null;
-  if (!authResult || !mongoose.isValidObjectId(authResult)) return null;
-  return new Types.ObjectId(String(authResult));
-}
-
 export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantId = await resolveMerchantId(req);
-    if (!merchantId) {
+    const scope = await requirePosScope(req, { permission: Permission.REPORTS });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Unauthorized",
+        status: scope.status,
       });
     }
+
+    const merchantId = scope.merchantId!;
 
     const todayStart = startOfDay(new Date());
     const todayEnd = endOfDay(new Date());

@@ -33,12 +33,21 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const ownerUsername =
+      typeof body.ownerUsername === "string" ? body.ownerUsername : "";
+    const ownerPassword =
+      typeof body.ownerPassword === "string" ? body.ownerPassword : "";
+
     const restaurant = await createRestaurant({
       name: body.name ?? "",
       ownerName: body.ownerName ?? "",
       email: body.email ?? "",
       phone: body.phone ?? "",
       address: body.address ?? "",
+      ownerAccount:
+        ownerUsername && ownerPassword
+          ? { username: ownerUsername, password: ownerPassword }
+          : undefined,
     });
 
     return sendRJResponse({

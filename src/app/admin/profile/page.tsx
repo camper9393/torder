@@ -1,10 +1,7 @@
-import AdminComingSoon from "@/components/Admin/AdminComingSoon"
+import AdminProfilePage from "@/components/Admin/Profile";
+import { requireProfilePage } from "@/lib/profilePageAuth";
 
-export default function AdminProfilePage() {
-  return (
-    <AdminComingSoon
-      title="Хэрэглэгч"
-      message="Хэрэглэгчийн хэсэг удахгүй нэмэгдэнэ"
-    />
-  )
+export default async function AdminProfileRoutePage() {
+  await requireProfilePage("/admin/profile");
+  return <AdminProfilePage />;
 }

@@ -6,7 +6,15 @@ import {
   deductInventoryForOrder,
   deductInventoryForOrderItem,
 } from "@/utils/inventoryDeduction";
+import {
+  assertRestaurantAccess,
+  resolvePosMerchantId,
+  resolveRestaurantIdForMerchant,
+  resolveTenantScope,
+} from "@/lib/tenant";
 import { resolveMerchantId } from "@/middleware/auth";
+import { withRestaurantId } from "@/utils/tenantQuery";
+import { NextResponse } from "next/server";
 import { resolveOrderItemsForPersistence } from "@/utils/orderItemPersistence";
 import type { RawOrderItemLike } from "@/utils/orderItemPricing";
 import { computeOrderTotal } from "@/utils/orderTotals";
@@ -51,13 +59,24 @@ export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantId = req.nextUrl.searchParams.get("merchantId");
+    const merchantParam = req.nextUrl.searchParams.get("merchantId");
     const query: Record<string, unknown> = {
       status: { $in: ACTIVE_STATUSES },
     };
 
-    if (merchantId && isValidObjectId(merchantId)) {
-      query.merchantId = new Types.ObjectId(merchantId);
+    let merchantObjectId: Types.ObjectId | null = null;
+    if (merchantParam && isValidObjectId(merchantParam)) {
+      merchantObjectId = new Types.ObjectId(merchantParam);
+    } else {
+      merchantObjectId = await resolvePosMerchantId(req);
+    }
+
+    if (merchantObjectId) {
+      query.merchantId = merchantObjectId;
+      const restaurantId = await resolveRestaurantIdForMerchant(merchantObjectId);
+      if (restaurantId) {
+        query.restaurantId = restaurantId;
+      }
     }
 
     const orders = await Order.find(query).sort({ createdAt: -1 }).lean<IOrder[]>();
@@ -106,6 +125,17 @@ export async function PATCH(req: NextRequest) {
         status: 404,
       });
     }
+
+    const scope = await resolveTenantScope(req);
+    if (scope instanceof NextResponse) {
+      return sendRJResponse({
+        success: false,
+        message: "Unauthorized",
+        status: 401,
+      });
+    }
+    const denied = assertRestaurantAccess(scope, existing.restaurantId ?? null);
+    if (denied) return denied;
 
     const update: Record<string, unknown> = {};
     let markServedIndex: number | undefined;

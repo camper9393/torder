@@ -24,3 +24,13 @@ export function merchantMenuQuery(
     $or: [{ merchantId: merchantObjectId }, { merchantId: idHex }],
   }
 }
+
+export function scopedMerchantMenuQuery(
+  merchantObjectId: Types.ObjectId,
+  restaurantId?: Types.ObjectId | null,
+  extra: Record<string, unknown> = {}
+) {
+  const query = merchantMenuQuery(merchantObjectId, extra)
+  if (!restaurantId) return query
+  return { ...query, restaurantId }
+}

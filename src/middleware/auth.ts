@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { verifyToken } from "@/utils/jwt";
-import { userpayload } from "@/types/users";
 import mongoose from "mongoose";
 import mongoServer from "@/config/mongoConfig";
 
@@ -9,10 +7,8 @@ import mongoServer from "@/config/mongoConfig";
 export async function resolveMerchantId(
   req: NextRequest
 ): Promise<mongoose.Types.ObjectId | null> {
-  const authResult = await verifyAuth(req);
-  if (authResult instanceof NextResponse) return null;
-  if (!authResult || !mongoose.isValidObjectId(authResult)) return null;
-  return new mongoose.Types.ObjectId(String(authResult));
+  const { resolvePosMerchantId } = await import("@/lib/tenant");
+  return resolvePosMerchantId(req);
 }
 
 export const verifyAuth = async (req: NextRequest) => {

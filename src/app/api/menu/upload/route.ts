@@ -1,4 +1,3 @@
-import { verifyAuth } from "@/middleware/auth";
 import { Menu } from "@/model/menu";
 import { uploadToCloudinary } from "@/service/cloudnary";
 import { sendRJResponse } from "@/utils/api";
@@ -7,18 +6,25 @@ import {
   parseMenuBodyFromFormData,
 } from "@/utils/menuApiPayload";
 import { NextRequest } from "next/server";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
+import { Types } from "mongoose";
 
 export async function POST(req: NextRequest) {
   try {
-    const merchantId = await verifyAuth(req);
-
-    if (!merchantId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Нэвтрэх шаардлагатай",
+        status: scope.status,
       });
     }
+
+    const merchantId = scope.merchantId!;
 
     const formData = await req.formData();
     const file = formData.get("image") as File | null;
@@ -71,7 +77,8 @@ export async function POST(req: NextRequest) {
         : 0;
 
     const menu = await Menu.create({
-      merchantId,
+      merchantId: new Types.ObjectId(String(merchantId)),
+      restaurantId: scope.restaurantId ?? undefined,
       image: imageUrl,
       quantity,
       ...menuBodyToDbSet(body),

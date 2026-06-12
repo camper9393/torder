@@ -1,13 +1,7 @@
 import mongoose from "mongoose";
+import { UserRole } from "@/constants/userRoles";
 
-export enum UserRole {
-  PLATFORM_OWNER = "platformOwner",
-  RESTAURANT_OWNER = "restaurantOwner",
-  MANAGER = "manager",
-  CASHIER = "cashier",
-  WAITER = "waiter",
-  KITCHEN = "kitchen",
-}
+export { UserRole };
 
 export interface IUser {
   _id: mongoose.Types.ObjectId;
@@ -36,10 +30,11 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     restaurantId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "merchants",
+      ref: "restaurants",
       required: function (this: IUser) {
         return this.role !== UserRole.PLATFORM_OWNER;
       },
+      index: true,
     },
     permissions: { type: [String], default: [] },
     isActive: { type: Boolean, default: true },
@@ -47,7 +42,6 @@ const userSchema = new mongoose.Schema<IUser>(
   { timestamps: true }
 );
 
-userSchema.index({ restaurantId: 1 });
 userSchema.index({ role: 1 });
 
 export const User =

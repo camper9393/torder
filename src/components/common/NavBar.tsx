@@ -34,7 +34,7 @@ function NavBar() {
     await postApi({
       url: LOGOUT,
     })
-    window.location.href = "/"
+    window.location.href = "/login"
   }
 
   return (

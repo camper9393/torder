@@ -7,12 +7,18 @@ import {
 } from "@/model/restaurant";
 import mongoose from "mongoose";
 
+export type CreateRestaurantOwnerAccountInput = {
+  username: string;
+  password: string;
+};
+
 export type CreateRestaurantInput = {
   name: string;
   ownerName: string;
   email: string;
   phone: string;
   address?: string;
+  ownerAccount?: CreateRestaurantOwnerAccountInput;
 };
 
 export type UpdateRestaurantInput = Partial<
@@ -86,7 +92,7 @@ export async function createRestaurant(
   const expireDate = addDays(startDate, 30);
   const limits = PLAN_LIMITS[RestaurantPlan.BUSINESS];
 
-  return Restaurant.create({
+  const restaurant = await Restaurant.create({
     name,
     slug,
     ownerName,
@@ -101,6 +107,26 @@ export async function createRestaurant(
     maxUsers: limits.maxUsers,
     isActive: true,
   });
+
+  if (input.ownerAccount?.username && input.ownerAccount?.password) {
+    const { provisionRestaurantOwner } = await import("@/service/staffService");
+    try {
+      await provisionRestaurantOwner(restaurant._id, {
+        name: ownerName,
+        email,
+        username: input.ownerAccount.username,
+        password: input.ownerAccount.password,
+      });
+    } catch (error) {
+      const detail =
+        error instanceof Error ? error.message : "Тодорхойгүй алдаа";
+      throw new Error(
+        `Ресторан үүслээ ч эзэмшигчийн бүртгэл үүсгэхэд алдаа: ${detail}`
+      );
+    }
+  }
+
+  return restaurant;
 }
 
 export async function getRestaurant(

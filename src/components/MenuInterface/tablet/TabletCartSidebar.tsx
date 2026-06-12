@@ -4,7 +4,7 @@ import { useLocale } from "@/context/LocaleContext"
 import { formatPrice } from "@/utils/currency"
 import CheckOutItem from "@/components/Checkout/CheckOutItem"
 import { ShoppingCart } from "lucide-react"
-import { PAPER_MENU_ASSETS } from "./paperMenuAssets"
+import { PAPER_WAVE_BORDER_CLASS } from "./paperMenuAssets"
 import { useTabletPlaceOrder } from "./useTabletPlaceOrder"
 import { useAppSelector } from "@/hook/redux"
 import { CheckOutItems } from "@/store/reducer/checkout"
@@ -41,12 +41,7 @@ function TabletCartSidebar({ merchantId }: TabletCartSidebarProps) {
     >
       <header className="relative border-b border-[#c9a227]/25 px-4 py-4">
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-2 opacity-40"
-          style={{
-            backgroundImage: `url(${PAPER_MENU_ASSETS.waveBorder})`,
-            backgroundSize: "auto 100%",
-            backgroundRepeat: "repeat-x",
-          }}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-0.5 opacity-40 ${PAPER_WAVE_BORDER_CLASS}`}
           aria-hidden
         />
         <div className="relative flex items-center gap-2">

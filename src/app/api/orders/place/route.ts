@@ -17,6 +17,9 @@ import { normalizeTableName } from "@/utils/table";
 import { isValidObjectId, Types } from "mongoose";
 
 import { NextRequest } from "next/server";
+import { resolveTenantScopeFromMerchantId } from "@/lib/tenant";
+import { withRestaurantId } from "@/utils/tenantQuery";
+import { Menu } from "@/model/menu";
 
 
 
@@ -74,13 +77,8 @@ export async function POST(req: NextRequest) {
 
 
 
-    console.log("ORDER ITEMS BEFORE SAVE", items);
-
-
-
     const merchantObjectId = new Types.ObjectId(merchantId);
-
-
+    const { restaurantId } = await resolveTenantScopeFromMerchantId(merchantObjectId);
 
     let mapped: RawOrderItemLike[];
 
@@ -174,7 +172,26 @@ export async function POST(req: NextRequest) {
 
     const total = computeOrderTotal(dbItems);
 
-
+    if (restaurantId) {
+      const menuIds = dbItems
+        .map((item) => item.menuItemId)
+        .filter((id): id is Types.ObjectId => Boolean(id));
+      if (menuIds.length > 0) {
+        const menuCount = await Menu.countDocuments(
+          withRestaurantId(
+            { _id: { $in: menuIds }, merchantId: merchantObjectId },
+            restaurantId
+          )
+        );
+        if (menuCount !== menuIds.length) {
+          return sendRJResponse({
+            success: false,
+            message: "Зарим бүтээгдэхүүн энэ ресторанд хамаарахгүй байна",
+            status: 403,
+          });
+        }
+      }
+    }
 
     if (!Number.isFinite(total) || total < 0) {
 
@@ -193,17 +210,12 @@ export async function POST(req: NextRequest) {
 
 
     const order = await Order.create({
-
       merchantId: merchantObjectId,
-
+      restaurantId: restaurantId ?? undefined,
       tableName: resolvedTableName,
-
       items: dbItems,
-
       total,
-
       status: "new",
-
     });
 
 

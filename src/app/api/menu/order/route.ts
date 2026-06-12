@@ -1,5 +1,6 @@
 import mongoServer from "@/config/mongoConfig";
-import { resolveMerchantId } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import { sendRJResponse } from "@/utils/api";
 import {
   getMenuOrderSnapshot,
@@ -16,20 +17,26 @@ import {
 import { isCategoryIconName } from "@/utils/categoryIcons";
 import { NextRequest } from "next/server";
 
+function posAuthMessage(res: Response): string {
+  return res.status === 403
+    ? "Энэ үйлдлийг хийх эрхгүй байна"
+    : "Нэвтрэх шаардлагатай";
+}
+
 export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized — sign in as merchant first",
-        status: 401,
+        message: posAuthMessage(scope),
+        status: scope.status,
       });
     }
 
-    const order = await getMenuOrderSnapshot(merchantObjectId);
+    const order = await getMenuOrderSnapshot(scope.merchantId!);
 
     return sendRJResponse({
       success: true,
@@ -67,15 +74,16 @@ export async function PATCH(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized — sign in as merchant first",
-        status: 401,
+        message: posAuthMessage(scope),
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const body = (await req.json()) as MenuOrderPatchBody;
 
     if (body.sectionOrder) {

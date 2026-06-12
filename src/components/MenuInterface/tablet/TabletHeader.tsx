@@ -5,7 +5,11 @@ import Image from "next/image"
 import { formatTableLabel, getSessionOrderNumber } from "@/utils/tabletSession"
 import { useLocale } from "@/context/LocaleContext"
 import LanguageSwitcher from "@/components/common/LanguageSwitcher"
-import { PAPER_MENU_ASSETS } from "./paperMenuAssets"
+import {
+  PAPER_MENU_ASSETS,
+  PAPER_WAVE_BORDER_CLASS,
+} from "./paperMenuAssets"
+import { cn } from "@/lib/utils"
 import { PAPER_GOLD, PAPER_GOLD_DIM, PAPER_GOLD_LIGHT } from "./tabletUi"
 
 type TabletHeaderProps = {
@@ -42,12 +46,10 @@ function TabletHeader({
   return (
     <header className="sticky top-0 z-30 shrink-0 border-b border-[#c9a227]/30 bg-[#121110]/95 backdrop-blur-md">
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-3 opacity-60"
-        style={{
-          backgroundImage: `url(${PAPER_MENU_ASSETS.waveBorder})`,
-          backgroundSize: "auto 100%",
-          backgroundRepeat: "repeat-x",
-        }}
+        className={cn(
+          "pointer-events-none absolute inset-x-0 bottom-0 h-0.5 opacity-60",
+          PAPER_WAVE_BORDER_CLASS
+        )}
         aria-hidden
       />
 

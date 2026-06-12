@@ -1,6 +1,7 @@
 import mongoServer from "@/config/mongoConfig";
 
-import { resolveMerchantId } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 
 import { Order } from "@/model/order";
 
@@ -51,21 +52,30 @@ export async function POST(req: NextRequest) {
 
 
 
-    const merchantObjectId = await resolveMerchantId(req);
+    const scope = await requirePosScope(req, { permission: Permission.TABLES });
 
-    if (!merchantObjectId) {
+    if (scope instanceof Response) {
 
       return sendRJResponse({
 
         success: false,
 
-        message: "Unauthorized",
+        message:
 
-        status: 401,
+          scope.status === 403
+
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+
+            : "Нэвтрэх шаардлагатай",
+
+        status: scope.status,
 
       });
 
     }
+
+    const merchantObjectId = scope.merchantId!;
+    const restaurantId = scope.restaurantId;
 
 
 
@@ -189,6 +199,7 @@ export async function POST(req: NextRequest) {
 
     const doc = await TableLayout.create({
       merchantId: merchantObjectId,
+      restaurantId: restaurantId ?? undefined,
       tableName: row.tableName,
       normalizedTableName: norm,
       description: row.description,
@@ -277,21 +288,30 @@ export async function DELETE(req: NextRequest) {
 
 
 
-    const merchantObjectId = await resolveMerchantId(req);
+    const scope = await requirePosScope(req, { permission: Permission.TABLES });
 
-    if (!merchantObjectId) {
+    if (scope instanceof Response) {
 
       return sendRJResponse({
 
         success: false,
 
-        message: "Unauthorized",
+        message:
 
-        status: 401,
+          scope.status === 403
+
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+
+            : "Нэвтрэх шаардлагатай",
+
+        status: scope.status,
 
       });
 
     }
+
+    const merchantObjectId = scope.merchantId!;
+    const restaurantId = scope.restaurantId;
 
 
 

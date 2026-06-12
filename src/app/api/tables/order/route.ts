@@ -21,6 +21,8 @@ import { normalizeTableName } from "@/utils/table";
 import { isValidObjectId, Types } from "mongoose";
 
 import { NextRequest, NextResponse } from "next/server";
+import { resolveRestaurantIdForMerchant } from "@/lib/tenant";
+import { scopedMerchantQuery } from "@/utils/tenantQuery";
 
 
 
@@ -219,13 +221,9 @@ export async function POST(req: NextRequest) {
 
 
     const existingActive = await Order.findOne({
-
-      merchantId,
-
+      ...(await scopedMerchantQuery(merchantId)),
       tableName: resolvedTableName,
-
       status: { $in: ACTIVE_TABLE_ORDER_STATUSES },
-
     }).lean();
 
 
@@ -246,18 +244,14 @@ export async function POST(req: NextRequest) {
 
 
 
+    const restaurantId = await resolveRestaurantIdForMerchant(merchantId);
     const order = await Order.create({
-
       merchantId,
-
+      restaurantId: restaurantId ?? undefined,
       tableName: resolvedTableName,
-
       items: dbItems,
-
       total,
-
       status: "accepted",
-
     });
 
 

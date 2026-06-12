@@ -1,10 +1,5 @@
-import AdminComingSoon from "@/components/Admin/AdminComingSoon"
+import AdminSettingsPage from "@/components/Admin/Settings"
 
-export default function AdminSettingsPage() {
-  return (
-    <AdminComingSoon
-      title="Тохиргоо"
-      message="Тохиргооны хэсэг удахгүй нэмэгдэнэ"
-    />
-  )
+export default function AdminSettingsRoutePage() {
+  return <AdminSettingsPage />
 }

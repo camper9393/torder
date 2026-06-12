@@ -10,6 +10,7 @@ export type MenuSizeOption = {
 export interface IMenu {
   _id: mongoose.Types.ObjectId;
   merchantId: mongoose.Types.ObjectId;
+  restaurantId?: mongoose.Types.ObjectId;
   image: string;
   title: string;
   description?: string;
@@ -51,6 +52,11 @@ const menuSchema = new mongoose.Schema<IMenu>(
       required: true,
       index: true,
     },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "restaurants",
+      index: true,
+    },
     image: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true, maxlength: 200 },
     description: { type: String, trim: true, maxlength: 500 },
@@ -90,6 +96,7 @@ if (mongoose.models.menus) {
     !schema.path("spicy") ||
     !schema.path("spicyLevel") ||
     !schema.path("available") ||
+    !schema.path("restaurantId") ||
     missingExtended
   ) {
     mongoose.deleteModel("menus");

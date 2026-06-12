@@ -1,5 +1,7 @@
 import mongoServer from "@/config/mongoConfig";
 
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import { resolveMerchantId } from "@/middleware/auth";
 
 import { MQR } from "@/model/qrs";
@@ -166,23 +168,30 @@ export async function PUT(req: NextRequest) {
 
 
 
-    const merchantObjectId = await resolveMerchantId(req);
+    const scope = await requirePosScope(req, { permission: Permission.TABLES });
 
-    if (!merchantObjectId) {
+    if (scope instanceof Response) {
 
       return sendRJResponse({
 
         success: false,
 
-        message: "Unauthorized",
+        message:
 
-        status: 401,
+          scope.status === 403
+
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+
+            : "Нэвтрэх шаардлагатай",
+
+        status: scope.status,
 
       });
 
     }
 
-
+    const merchantObjectId = scope.merchantId!;
+    const restaurantId = scope.restaurantId;
 
     const body = await req.json();
     const parsed = parsePutBody(body);
@@ -369,6 +378,7 @@ export async function PUT(req: NextRequest) {
 
       const created = await TableLayout.create({
         merchantId: merchantObjectId,
+        restaurantId: restaurantId ?? undefined,
         tableName: row.tableName,
         normalizedTableName: norm,
         description: row.description,

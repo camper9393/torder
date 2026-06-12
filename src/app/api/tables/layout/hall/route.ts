@@ -1,5 +1,6 @@
 import mongoServer from "@/config/mongoConfig";
-import { resolveMerchantId } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import {
   createMerchantHall,
   deleteMerchantHall,
@@ -8,19 +9,26 @@ import {
 import { sendRJResponse } from "@/utils/api";
 import { NextRequest } from "next/server";
 
+function posAuthMessage(res: Response): string {
+  return res.status === 403
+    ? "Энэ үйлдлийг хийх эрхгүй байна"
+    : "Нэвтрэх шаардлагатай";
+}
+
 export async function POST(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.TABLES });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message: posAuthMessage(scope),
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const hall = await createMerchantHall(merchantObjectId);
     const halls = await ensureMerchantHalls(merchantObjectId);
 
@@ -44,15 +52,16 @@ export async function DELETE(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.TABLES });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message: posAuthMessage(scope),
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const hallId = req.nextUrl.searchParams.get("hallId")?.trim();
     if (!hallId) {
       return sendRJResponse({

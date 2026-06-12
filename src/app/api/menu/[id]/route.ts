@@ -1,5 +1,6 @@
 import mongoServer from "@/config/mongoConfig";
-import { resolveMerchantId } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import { Menu } from "@/model/menu";
 import { uploadToCloudinary } from "@/service/cloudnary";
 import { sendRJResponse } from "@/utils/api";
@@ -8,7 +9,7 @@ import {
   menuBodyToDbSet,
   parseMenuBodyFromFormData,
 } from "@/utils/menuApiPayload";
-import { merchantMenuQuery } from "@/utils/menuMerchantScope";
+import { scopedMerchantMenuQuery } from "@/utils/menuMerchantScope";
 import mongoose from "mongoose";
 import { NextRequest } from "next/server";
 
@@ -57,15 +58,19 @@ export async function PATCH(
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Нэвтрэх шаардлагатай",
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const { id } = await params;
     if (!id || !isValidMenuItemId(id)) {
       return sendRJResponse({
@@ -90,7 +95,7 @@ export async function PATCH(
     const menuObjectId = new mongoose.Types.ObjectId(id);
 
     const updatedMenu = await Menu.findOneAndUpdate(
-      merchantMenuQuery(merchantObjectId, { _id: menuObjectId }),
+      scopedMerchantMenuQuery(merchantObjectId, scope.restaurantId, { _id: menuObjectId }),
       { $set },
       { new: true, runValidators: true }
     ).lean();
@@ -127,15 +132,19 @@ export async function DELETE(
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Нэвтрэх шаардлагатай",
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const { id } = await params;
     if (!id || !isValidMenuItemId(id)) {
       return sendRJResponse({
@@ -148,7 +157,7 @@ export async function DELETE(
     const menuObjectId = new mongoose.Types.ObjectId(id);
 
     const deletedMenu = await Menu.findOneAndDelete(
-      merchantMenuQuery(merchantObjectId, { _id: menuObjectId })
+      scopedMerchantMenuQuery(merchantObjectId, scope.restaurantId, { _id: menuObjectId })
     );
 
     if (!deletedMenu) {

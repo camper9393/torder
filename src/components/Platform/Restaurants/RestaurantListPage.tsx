@@ -42,6 +42,8 @@ export default function RestaurantListPage() {
     email: "",
     phone: "",
     address: "",
+    ownerUsername: "",
+    ownerPassword: "",
   });
 
   const loadRestaurants = React.useCallback(async () => {
@@ -76,7 +78,15 @@ export default function RestaurantListPage() {
       return;
     }
 
-    setForm({ name: "", ownerName: "", email: "", phone: "", address: "" });
+    setForm({
+      name: "",
+      ownerName: "",
+      email: "",
+      phone: "",
+      address: "",
+      ownerUsername: "",
+      ownerPassword: "",
+    });
     await loadRestaurants();
     setCreating(false);
   };
@@ -134,6 +144,37 @@ export default function RestaurantListPage() {
             <Input
               value={form.address}
               onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <p className="text-sm font-medium text-zinc-800">
+              Рестораны эзэмшигчийн нэвтрэх эрх
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-700">
+              Эзэмшигчийн хэрэглэгчийн нэр *
+            </label>
+            <Input
+              required
+              value={form.ownerUsername}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, ownerUsername: e.target.value }))
+              }
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-zinc-700">
+              Түр нууц үг *
+            </label>
+            <Input
+              required
+              type="password"
+              minLength={6}
+              value={form.ownerPassword}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, ownerPassword: e.target.value }))
+              }
             />
           </div>
         </div>

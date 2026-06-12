@@ -5,7 +5,7 @@ import FullscreenButton from "@/components/MenuInterface/FullscreenButton"
 import { PaperMenuShell } from "@/components/MenuInterface/tablet/PaperMenuShell"
 import TabletBottomNav from "@/components/MenuInterface/tablet/TabletBottomNav"
 import TabletHeader from "@/components/MenuInterface/tablet/TabletHeader"
-import { PAPER_MENU_ASSETS } from "@/components/MenuInterface/tablet/paperMenuAssets"
+import { PAPER_WAVE_BORDER_CLASS } from "@/components/MenuInterface/tablet/paperMenuAssets"
 import { formatPrice } from "@/utils/currency"
 import { useRouter } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
@@ -49,12 +49,7 @@ function TabletCheckoutLayout({
 
       <div className="relative border-b border-[#c9a227]/25 bg-[#1a1714]/80 px-4 py-3">
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-2 opacity-40"
-          style={{
-            backgroundImage: `url(${PAPER_MENU_ASSETS.waveBorder})`,
-            backgroundSize: "auto 100%",
-            backgroundRepeat: "repeat-x",
-          }}
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-0.5 opacity-40 ${PAPER_WAVE_BORDER_CLASS}`}
           aria-hidden
         />
         <button

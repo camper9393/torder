@@ -5,6 +5,7 @@ import { sendRJResponse } from "@/utils/api";
 import { serializeKitchenOrder } from "@/utils/serializeKitchenOrder";
 import { isValidObjectId, Types } from "mongoose";
 import { NextRequest } from "next/server";
+import { resolveRestaurantIdForMerchant } from "@/lib/tenant";
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,10 +20,19 @@ export async function GET(req: NextRequest) {
       status: { $in: ["done", "closed"] },
     };
 
+    let merchantObjectId: Types.ObjectId | null = null;
     if (authMerchantId) {
-      query.merchantId = authMerchantId;
+      merchantObjectId = authMerchantId;
     } else if (merchantIdParam && isValidObjectId(merchantIdParam)) {
-      query.merchantId = new Types.ObjectId(merchantIdParam);
+      merchantObjectId = new Types.ObjectId(merchantIdParam);
+    }
+
+    if (merchantObjectId) {
+      query.merchantId = merchantObjectId;
+      const restaurantId = await resolveRestaurantIdForMerchant(merchantObjectId);
+      if (restaurantId) {
+        query.restaurantId = restaurantId;
+      }
     }
 
     const orders = await Order.find(query)

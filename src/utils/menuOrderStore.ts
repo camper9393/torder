@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Menu } from "@/model/menu";
 import { MenuOrder } from "@/model/menuOrder";
+import { resolveRestaurantIdForMerchant } from "@/lib/tenant";
 import {
   CategoryIconName,
   sanitizeSectionIcons,
@@ -50,6 +51,7 @@ async function upsertMenuOrderDoc(
   merchantId: mongoose.Types.ObjectId,
   update: Partial<MenuOrderSnapshot>
 ) {
+  const restaurantId = await resolveRestaurantIdForMerchant(merchantId);
   const $set: Record<string, unknown> = {};
   if (update.sectionOrder) {
     $set.sectionOrder = update.sectionOrder;
@@ -64,9 +66,14 @@ async function upsertMenuOrderDoc(
     $set.sectionMeta = update.sectionMeta;
   }
 
+  const $setOnInsert: Record<string, unknown> = { merchantId };
+  if (restaurantId) {
+    $setOnInsert.restaurantId = restaurantId;
+  }
+
   return MenuOrder.findOneAndUpdate(
     { merchantId },
-    { $set },
+    { $set, $setOnInsert },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ).lean();
 }
@@ -83,12 +90,19 @@ export async function saveMenuOrderSectionIcon(
   section: string,
   icon: CategoryIconName
 ) {
+  const restaurantId = await resolveRestaurantIdForMerchant(merchantId);
+  const $setOnInsert: Record<string, unknown> = { merchantId };
+  if (restaurantId) {
+    $setOnInsert.restaurantId = restaurantId;
+  }
+
   await MenuOrder.findOneAndUpdate(
     { merchantId },
     {
       $set: {
         [`sectionIcons.${section}`]: icon,
       },
+      $setOnInsert,
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ).lean();

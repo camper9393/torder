@@ -1,8 +1,9 @@
 import mongoServer from "@/config/mongoConfig";
-import { resolveMerchantId } from "@/middleware/auth";
+import { Permission } from "@/lib/permissions";
+import { requirePosScope } from "@/lib/tenant";
 import { Menu } from "@/model/menu";
 import { sendRJResponse } from "@/utils/api";
-import { merchantMenuQuery } from "@/utils/menuMerchantScope";
+import { scopedMerchantMenuQuery } from "@/utils/menuMerchantScope";
 import { normalizeMenuDocument } from "@/utils/menuBilingual";
 import { applyMenuOrdering } from "@/utils/menuOrder";
 import { getMenuOrderSnapshot } from "@/utils/menuOrderStore";
@@ -13,19 +14,25 @@ export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantObjectId = await resolveMerchantId(req);
-    if (!merchantObjectId) {
+    const scope = await requirePosScope(req, { permission: Permission.MENU });
+    if (scope instanceof Response) {
       return sendRJResponse({
         success: false,
-        message: "Unauthorized — sign in as merchant first",
-        status: 401,
+        message:
+          scope.status === 403
+            ? "Энэ үйлдлийг хийх эрхгүй байна"
+            : "Нэвтрэх шаардлагатай",
+        status: scope.status,
       });
     }
 
+    const merchantObjectId = scope.merchantId!;
     const merchantId = merchantObjectId.toHexString();
     const debug = req.nextUrl.searchParams.get("debug") === "1";
 
-    const rows = await Menu.find(merchantMenuQuery(merchantObjectId)).lean();
+    const rows = await Menu.find(
+      scopedMerchantMenuQuery(merchantObjectId, scope.restaurantId)
+    ).lean();
     const menu = rows.map((row) => normalizeMenuDocument(row));
     const order = await getMenuOrderSnapshot(merchantObjectId);
     const defaultSectionOrder = [...MUJIN_MENU_SECTIONS];

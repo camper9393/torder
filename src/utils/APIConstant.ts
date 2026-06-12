@@ -6,6 +6,16 @@ export const LOGIN: string = "/auth/signup"
 export const LOGOUT: string = "/auth/logout"
 export const USER_LOGIN: string = "/auth/login"
 export const USER_ME: string = "/auth/me"
+export const GET_AUTH_PROFILE: string = "/auth/profile"
+export const PATCH_AUTH_PROFILE: string = "/auth/profile"
+export const POST_AUTH_CHANGE_PASSWORD: string = "/auth/change-password"
+
+// admin staff
+export const GET_ADMIN_STAFF: string = "/admin/staff"
+export const POST_ADMIN_STAFF: string = "/admin/staff"
+export const PATCH_ADMIN_STAFF = (id: string) => `/admin/staff/${id}`
+export const POST_ADMIN_STAFF_RESET_PASSWORD = (id: string) =>
+  `/admin/staff/${id}/reset-password`
 
 // platform restaurants
 export const GET_PLATFORM_RESTAURANTS: string = "/platform/restaurants"
@@ -16,6 +26,8 @@ export const POST_PLATFORM_RESTAURANT_ACTIVATE = (id: string) =>
   `/platform/restaurants/${id}/activate`
 export const POST_PLATFORM_RESTAURANT_DEACTIVATE = (id: string) =>
   `/platform/restaurants/${id}/deactivate`
+export const POST_PLATFORM_MIGRATE_RESTAURANT: string =
+  "/platform/migrate/restaurant"
 
 // Menu
 export const MENUBUILDER_LISTS: string = "/menu/lists"

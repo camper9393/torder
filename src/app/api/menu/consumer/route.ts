@@ -8,20 +8,32 @@ import { applyMenuOrdering } from "@/utils/menuOrder";
 import { getMenuOrderSnapshot } from "@/utils/menuOrderStore";
 import { isValidObjectId, Types } from "mongoose";
 import { NextRequest } from "next/server";
+import {
+  resolvePosMerchantId,
+  resolveTenantScopeFromMerchantId,
+} from "@/lib/tenant";
+import { scopedMerchantMenuQuery } from "@/utils/menuMerchantScope";
 
 export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const merchantId = req.nextUrl.searchParams.get("merchantId");
+    const merchantParam = req.nextUrl.searchParams.get("merchantId");
     const userId = req.nextUrl.searchParams.get("userId");
 
+    let merchantObjectId: Types.ObjectId | null = null;
     if (
-      !merchantId ||
-      merchantId === "undefined" ||
-      merchantId === "test" ||
-      !isValidObjectId(merchantId)
+      merchantParam &&
+      merchantParam !== "undefined" &&
+      merchantParam !== "test" &&
+      isValidObjectId(merchantParam)
     ) {
+      merchantObjectId = new Types.ObjectId(merchantParam);
+    } else {
+      merchantObjectId = await resolvePosMerchantId(req);
+    }
+
+    if (!merchantObjectId) {
       return sendRJResponse({
         success: false,
         message: "Invalid merchantId",
@@ -30,9 +42,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const merchantObjectId = new Types.ObjectId(merchantId);
+    const merchantId = merchantObjectId.toHexString();
+    const { restaurantId } = await resolveTenantScopeFromMerchantId(merchantObjectId);
 
-    const menu = await Menu.find({ merchantId: merchantObjectId }).lean();
+    const menu = await Menu.find(
+      scopedMerchantMenuQuery(merchantObjectId, restaurantId)
+    ).lean();
 
     const normalizedMenu = menu
       .filter((item) => item.available !== false)

@@ -1,5 +1,5 @@
 import mongoServer from "@/config/mongoConfig";
-import { verifyAuth } from "@/middleware/auth";
+import { resolvePosMerchantId } from "@/lib/tenant";
 import { Order, OrderStatus } from "@/model/order";
 import { MQR } from "@/model/qrs";
 import { TableLayout } from "@/model/tableLayout";
@@ -20,28 +20,17 @@ import {
   waiterCallTableKey,
 } from "@/utils/waiterCallTable";
 import { isValidObjectId, Types } from "mongoose";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { resolveRestaurantIdForMerchant } from "@/lib/tenant";
 
 const ACTIVE_ORDER_SELECT =
   "tableName status total createdAt items.title items.nameMn items.nameEn items.selectedSizeLabelMn items.selectedSizeLabelEn items.menuItemId items.price items.quantity items.served items.image";
 
-/** Logged-in merchant (cookie) or explicit ?merchantId= query. */
+/** Merchant token, platform owner legacy scope, or ?merchantId= query. */
 async function resolveTablesMerchantId(
   req: NextRequest
 ): Promise<Types.ObjectId | null> {
-  const queryId = req.nextUrl.searchParams.get("merchantId");
-
-  const authResult = await verifyAuth(req);
-  if (authResult && !(authResult instanceof NextResponse)) {
-    const id = String(authResult);
-    if (isValidObjectId(id)) return new Types.ObjectId(id);
-  }
-
-  if (queryId && isValidObjectId(queryId)) {
-    return new Types.ObjectId(queryId);
-  }
-
-  return null;
+  return resolvePosMerchantId(req);
 }
 
 function sumItemCount(
@@ -209,13 +198,95 @@ async function fetchActiveWaiterCallsByTableKey(
   return map;
 }
 
+/** Restaurant scope: tenant rows + legacy rows without restaurantId on same merchant */
+function buildTableLayoutScopeFilter(
+  merchantOid: Types.ObjectId,
+  restaurantId: Types.ObjectId | null
+): Record<string, unknown> {
+  if (restaurantId) {
+    return {
+      merchantId: merchantOid,
+      $or: [
+        { restaurantId },
+        { restaurantId: { $exists: false } },
+        { restaurantId: null },
+      ],
+    };
+  }
+  return { merchantId: merchantOid };
+}
+
+function isDuplicateKeyError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code: number }).code === 11000
+  );
+}
+
+async function insertMissingTableLayouts(
+  merchantOid: Types.ObjectId,
+  restaurantId: Types.ObjectId | null,
+  layouts: FloorLayoutTable[]
+): Promise<void> {
+  if (layouts.length === 0) return;
+
+  const normalizedNames = layouts.map((layout) =>
+    layout.tableName.trim().toLowerCase()
+  );
+
+  const existing = await TableLayout.find({
+    merchantId: merchantOid,
+    normalizedTableName: { $in: normalizedNames },
+  })
+    .select("normalizedTableName")
+    .lean();
+
+  const existingKeys = new Set(
+    existing.map((row) => row.normalizedTableName)
+  );
+
+  for (const layout of layouts) {
+    const normalizedTableName = layout.tableName.trim().toLowerCase();
+    if (existingKeys.has(normalizedTableName)) {
+      continue;
+    }
+
+    try {
+      await TableLayout.create({
+        merchantId: merchantOid,
+        restaurantId: restaurantId ?? undefined,
+        tableName: layout.tableName,
+        normalizedTableName,
+        description: layout.description,
+        shape: layout.shape,
+        color: "#4A7FE5",
+        hallId: layout.hallId,
+        x: layout.x,
+        y: layout.y,
+        width: layout.width,
+        height: layout.height,
+      });
+      existingKeys.add(normalizedTableName);
+    } catch (err) {
+      if (isDuplicateKeyError(err)) {
+        continue;
+      }
+      console.warn("[tables] layout seed insert:", err);
+    }
+  }
+}
+
 async function resolveTableLayoutsForMerchant(
   merchantOid: Types.ObjectId,
+  restaurantId: Types.ObjectId | null,
   tableNames: string[]
 ): Promise<FloorLayoutTable[]> {
   if (tableNames.length === 0) return [];
 
-  const docs = await TableLayout.find({ merchantId: merchantOid }).lean();
+  const scopeFilter = buildTableLayoutScopeFilter(merchantOid, restaurantId);
+  const docs = await TableLayout.find(scopeFilter).lean();
 
   const saved = docs.map((d) =>
     layoutDocToFloorTable({
@@ -233,33 +304,18 @@ async function resolveTableLayoutsForMerchant(
 
   const merged = mergeFloorLayouts(tableNames, saved);
   const savedKeys = new Set(
-    docs.map((d) => d.tableName.trim().toLowerCase())
+    docs.map((d) => normalizeTableNameKey(d.tableName))
   );
   const toInsert = merged.filter(
-    (m) => !savedKeys.has(m.tableName.trim().toLowerCase())
+    (m) => !savedKeys.has(normalizeTableNameKey(m.tableName))
   );
 
+  if (docs.length > 0 && toInsert.length === 0) {
+    return merged;
+  }
+
   if (toInsert.length > 0) {
-    try {
-      await TableLayout.insertMany(
-        toInsert.map((layout) => ({
-          merchantId: merchantOid,
-          tableName: layout.tableName,
-          normalizedTableName: layout.tableName.trim().toLowerCase(),
-          description: layout.description,
-          shape: layout.shape,
-          color: "#4A7FE5",
-          hallId: layout.hallId,
-          x: layout.x,
-          y: layout.y,
-          width: layout.width,
-          height: layout.height,
-        })),
-        { ordered: false }
-      );
-    } catch (err) {
-      console.warn("[tables] layout seed insert:", err);
-    }
+    await insertMissingTableLayouts(merchantOid, restaurantId, toInsert);
   }
 
   return merged;
@@ -296,8 +352,13 @@ export async function GET(req: NextRequest) {
     const merchantOid = await resolveTablesMerchantId(req);
     const baseMatch: Record<string, unknown> = {};
 
+    let restaurantId: Types.ObjectId | null = null;
     if (merchantOid) {
       baseMatch.merchantId = merchantOid;
+      restaurantId = await resolveRestaurantIdForMerchant(merchantOid);
+      if (restaurantId) {
+        baseMatch.restaurantId = restaurantId;
+      }
     }
 
     if (tableName) {
@@ -371,7 +432,9 @@ export async function GET(req: NextRequest) {
 
     let allTableNames: string[];
     if (merchantOid) {
-      const layoutDocs = await TableLayout.find({ merchantId: merchantOid })
+      const layoutDocs = await TableLayout.find(
+        buildTableLayoutScopeFilter(merchantOid, restaurantId)
+      )
         .select("tableName")
         .lean();
       const layoutOnly = layoutDocs
@@ -418,6 +481,7 @@ export async function GET(req: NextRequest) {
       halls = await ensureMerchantHalls(merchantOid);
       const layouts = await resolveTableLayoutsForMerchant(
         merchantOid,
+        restaurantId,
         allTableNames
       );
       const layoutByName = new Map(
