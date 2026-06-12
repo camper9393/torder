@@ -5,11 +5,7 @@ import {
   userHasPermission,
 } from "@/lib/permissions";
 import type { IUser } from "@/model/user";
-import {
-  RestaurantPlan,
-  SubscriptionStatus,
-  type IRestaurant,
-} from "@/model/restaurant";
+import type { IRestaurant } from "@/model/restaurant";
 
 export type ProfileAction = {
   id: string;
@@ -46,16 +42,16 @@ export const PROFILE_ACTIONS: readonly ProfileAction[] = [
   },
 ] as const;
 
-export const PLAN_LABELS_MN: Record<RestaurantPlan, string> = {
-  [RestaurantPlan.STARTER]: "Starter",
-  [RestaurantPlan.BUSINESS]: "Business",
-  [RestaurantPlan.ENTERPRISE]: "Enterprise",
+export const PLAN_LABELS_MN: Record<string, string> = {
+  starter: "Starter",
+  business: "Business",
+  enterprise: "Enterprise",
 };
 
-export const SUBSCRIPTION_LABELS_MN: Record<SubscriptionStatus, string> = {
-  [SubscriptionStatus.ACTIVE]: "Идэвхтэй",
-  [SubscriptionStatus.EXPIRED]: "Хугацаа дууссан",
-  [SubscriptionStatus.SUSPENDED]: "Түдгэлзүүлсэн",
+export const SUBSCRIPTION_LABELS_MN: Record<string, string> = {
+  active: "Идэвхтэй",
+  expired: "Хугацаа дууссан",
+  suspended: "Түдгэлзүүлсэн",
 };
 
 export function getAccountTypeLabel(role: UserRole): string {

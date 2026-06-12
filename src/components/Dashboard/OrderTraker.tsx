@@ -18,7 +18,7 @@ export default function OrderTrackingChart() {
     });
 
     if (response?.success) {
-      setTrends(response.data);
+      setTrends(Array.isArray(response.data) ? response.data : []);
     }
   }
 

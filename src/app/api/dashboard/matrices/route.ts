@@ -1,4 +1,4 @@
-import { verifyAuth } from "@/middleware/auth";
+import { resolveMerchantId } from "@/middleware/auth";
 import { Order } from "@/model/order";
 import { Transaction, TransactionStatus } from "@/model/transations";
 import { VisitorModel } from "@/model/visitors";
@@ -115,7 +115,7 @@ const getRevenue = async (merchantId: mongoose.Types.ObjectId) => {
 
 export async function GET(req: NextRequest) {
     try {
-        const merchantId = await verifyAuth(req) as mongoose.Types.ObjectId;
+        const merchantId = await resolveMerchantId(req);
 
         if (!merchantId) {
             return sendRJResponse({ success: false, status: 401, message: "Unauthorized" });

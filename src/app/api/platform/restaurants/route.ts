@@ -1,8 +1,7 @@
 import { requirePlatformOwner } from "@/lib/auth";
-import {
-  createRestaurant,
-  getRestaurants,
-} from "@/service/restaurantService";
+import { listRestaurantsEnriched } from "@/service/platformRestaurantService";
+import { createRestaurant } from "@/service/restaurantService";
+import { RestaurantPlan } from "@/model/restaurant";
 import { sendRJResponse } from "@/utils/api";
 import { NextRequest } from "next/server";
 
@@ -11,7 +10,12 @@ export async function GET(req: NextRequest) {
   if (authResult instanceof Response) return authResult;
 
   try {
-    const restaurants = await getRestaurants();
+    const { searchParams } = req.nextUrl;
+    const restaurants = await listRestaurantsEnriched({
+      status: searchParams.get("status") ?? undefined,
+      plan: searchParams.get("plan") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+    });
     return sendRJResponse({
       success: true,
       message: "Амжилттай",
@@ -38,12 +42,22 @@ export async function POST(req: NextRequest) {
     const ownerPassword =
       typeof body.ownerPassword === "string" ? body.ownerPassword : "";
 
+    const plan =
+      typeof body.plan === "string" &&
+      Object.values(RestaurantPlan).includes(body.plan as RestaurantPlan)
+        ? (body.plan as RestaurantPlan)
+        : undefined;
+
     const restaurant = await createRestaurant({
       name: body.name ?? "",
       ownerName: body.ownerName ?? "",
       email: body.email ?? "",
       phone: body.phone ?? "",
       address: body.address ?? "",
+      plan,
+      expireDate: body.expireDate,
+      maxTables: body.maxTables ? Number(body.maxTables) : undefined,
+      maxUsers: body.maxUsers ? Number(body.maxUsers) : undefined,
       ownerAccount:
         ownerUsername && ownerPassword
           ? { username: ownerUsername, password: ownerPassword }

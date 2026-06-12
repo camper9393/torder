@@ -1,4 +1,4 @@
-import { verifyAuth } from "@/middleware/auth";
+import { resolveMerchantId } from "@/middleware/auth";
 import { Order } from "@/model/order";
 import { sendRJResponse } from "@/utils/api";
 import { Types } from "mongoose";
@@ -54,7 +54,7 @@ const getTrends = async (merchantId: Types.ObjectId) => {
 
 export async function GET(req: NextRequest) {
     try {
-        const merchantId = await verifyAuth(req) as Types.ObjectId;
+        const merchantId = await resolveMerchantId(req);
 
         if (!merchantId) {
             return sendRJResponse({ success: false, status: 401, message: "Unauthorized" });

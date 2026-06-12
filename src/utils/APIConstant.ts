@@ -28,6 +28,37 @@ export const POST_PLATFORM_RESTAURANT_DEACTIVATE = (id: string) =>
   `/platform/restaurants/${id}/deactivate`
 export const POST_PLATFORM_MIGRATE_RESTAURANT: string =
   "/platform/migrate/restaurant"
+export const GET_PLATFORM_DASHBOARD: string = "/platform/dashboard"
+export const GET_PLATFORM_RESTAURANT_SUMMARY = (id: string) =>
+  `/platform/restaurants/${id}/summary`
+export const POST_PLATFORM_RESTAURANT_EXTEND = (id: string) =>
+  `/platform/restaurants/${id}/extend-subscription`
+export const POST_PLATFORM_RESTAURANT_EXTEND_SHORT = (id: string) =>
+  `/platform/restaurants/${id}/extend`
+export const GET_PLATFORM_RESTAURANT_USERS = (id: string) =>
+  `/platform/restaurants/${id}/users`
+export const GET_PLATFORM_RESTAURANT_PAYMENTS = (id: string) =>
+  `/platform/restaurants/${id}/payments`
+export const GET_PLATFORM_RESTAURANT_SUPPORT = (id: string) =>
+  `/platform/restaurants/${id}/support`
+export const POST_PLATFORM_RESTAURANT_RESET_OWNER_PASSWORD = (id: string) =>
+  `/platform/restaurants/${id}/reset-owner-password`
+export const GET_PLATFORM_USERS: string = "/platform/users"
+export const PATCH_PLATFORM_USER = (id: string) => `/platform/users/${id}`
+export const POST_PLATFORM_USER_RESET_PASSWORD = (id: string) =>
+  `/platform/users/${id}/reset-password`
+export const GET_PLATFORM_PAYMENTS: string = "/platform/payments"
+export const POST_PLATFORM_PAYMENT: string = "/platform/payments"
+export const PATCH_PLATFORM_PAYMENT = (id: string) => `/platform/payments/${id}`
+export const GET_PLATFORM_SUPPORT: string = "/platform/support"
+export const POST_PLATFORM_SUPPORT: string = "/platform/support"
+export const PATCH_PLATFORM_SUPPORT = (id: string) => `/platform/support/${id}`
+export const GET_PLATFORM_ERRORS: string = "/platform/errors"
+export const PATCH_PLATFORM_ERROR = (id: string) => `/platform/errors/${id}`
+export const GET_PLATFORM_REPORTS: string = "/platform/reports"
+export const GET_PLATFORM_SETTINGS: string = "/platform/settings"
+export const PATCH_PLATFORM_SETTINGS: string = "/platform/settings"
+export const GET_PLATFORM_ACTIVITY: string = "/platform/activity"
 
 // Menu
 export const MENUBUILDER_LISTS: string = "/menu/lists"

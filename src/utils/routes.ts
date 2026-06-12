@@ -1,3 +1,8 @@
+/** Public marketing landing at site root (no legacy site navbar). */
+export function isPublicLandingRoute(pathname: string | null): boolean {
+  return pathname === "/"
+}
+
 /** Customer tablet menu + checkout (no site chrome). */
 export function isConsumerTabletRoute(pathname: string | null): boolean {
   if (!pathname) return false
@@ -8,6 +13,12 @@ export function isConsumerTabletRoute(pathname: string | null): boolean {
 export function isKitchenTvRoute(pathname: string | null): boolean {
   if (!pathname) return false
   return pathname === "/kitchen-tv" || pathname.startsWith("/kitchen-tv/")
+}
+
+/** Platform super admin workspace */
+export function usesPlatformSidebar(pathname: string | null): boolean {
+  if (!pathname) return false
+  return pathname === "/platform" || pathname.startsWith("/platform/")
 }
 
 /** Merchant staff pages use the left sidebar for all navigation. */
@@ -25,8 +36,10 @@ export function usesMerchantSidebar(pathname: string | null): boolean {
 
 export function hidesSiteNavBar(pathname: string | null): boolean {
   return (
+    isPublicLandingRoute(pathname) ||
     isConsumerTabletRoute(pathname) ||
     isKitchenTvRoute(pathname) ||
-    usesMerchantSidebar(pathname)
+    usesMerchantSidebar(pathname) ||
+    usesPlatformSidebar(pathname)
   )
 }

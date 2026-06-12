@@ -1,7 +1,11 @@
 import { requirePlatformOwner } from "@/lib/auth";
+import { RestaurantPlan, SubscriptionStatus } from "@/model/restaurant";
 import { getRestaurant, updateRestaurant } from "@/service/restaurantService";
 import { sendRJResponse } from "@/utils/api";
+import { serializeRestaurant } from "@/utils/platformSerialize";
 import { NextRequest } from "next/server";
+
+const FORBIDDEN_PATCH = ["_id", "restaurantId", "slug", "createdAt", "updatedAt", "startDate"];
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -26,7 +30,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     return sendRJResponse({
       success: true,
       message: "Амжилттай",
-      data: restaurant,
+      data: serializeRestaurant(restaurant),
     });
   } catch (error) {
     console.error("GET /api/platform/restaurants/[id] error:", error);
@@ -45,7 +49,37 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const body = await req.json();
-    const restaurant = await updateRestaurant(id, body);
+
+    for (const field of FORBIDDEN_PATCH) {
+      if (field in body) {
+        return sendRJResponse({
+          success: false,
+          message: `${field} талбарыг өөрчлөх боломжгүй`,
+          status: 400,
+        });
+      }
+    }
+
+    const restaurant = await updateRestaurant(id, {
+      name: body.name,
+      ownerName: body.ownerName,
+      email: body.email,
+      phone: body.phone,
+      address: body.address,
+      plan:
+        body.plan && Object.values(RestaurantPlan).includes(body.plan)
+          ? body.plan
+          : undefined,
+      maxTables: body.maxTables ? Number(body.maxTables) : undefined,
+      maxUsers: body.maxUsers ? Number(body.maxUsers) : undefined,
+      subscriptionStatus:
+        body.subscriptionStatus &&
+        Object.values(SubscriptionStatus).includes(body.subscriptionStatus)
+          ? body.subscriptionStatus
+          : undefined,
+      expireDate: body.expireDate,
+      isActive: typeof body.isActive === "boolean" ? body.isActive : undefined,
+    });
 
     if (!restaurant) {
       return sendRJResponse({
@@ -57,8 +91,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     return sendRJResponse({
       success: true,
-      message: "Ресторан шинэчлэгдлээ",
-      data: restaurant,
+      message: "Амжилттай хадгаллаа",
+      data: serializeRestaurant(restaurant),
     });
   } catch (error) {
     console.error("PATCH /api/platform/restaurants/[id] error:", error);

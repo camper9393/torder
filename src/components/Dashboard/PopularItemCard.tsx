@@ -23,7 +23,7 @@ export default function PopularItemsCard() {
       setLoading(false);
   
       if (response?.success) {
-        setItems(response.data);
+        setItems(Array.isArray(response.data) ? response.data : []);
       }
     }
 
@@ -50,7 +50,7 @@ export default function PopularItemsCard() {
           Array.from({ length: 4 }).map((_, index) => (
             <SkeletonRow key={index} />
           ))
-        ) : items.length > 0 ? (
+        ) : (items?.length ?? 0) > 0 ? (
           items.map((item, index) => (
             <ItemRow
               key={item.title}

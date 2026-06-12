@@ -18,6 +18,10 @@ export type CreateRestaurantInput = {
   email: string;
   phone: string;
   address?: string;
+  plan?: RestaurantPlan;
+  expireDate?: Date | string;
+  maxTables?: number;
+  maxUsers?: number;
   ownerAccount?: CreateRestaurantOwnerAccountInput;
 };
 
@@ -34,6 +38,7 @@ export type UpdateRestaurantInput = Partial<
     | "maxUsers"
     | "subscriptionStatus"
     | "expireDate"
+    | "isActive"
   >
 >;
 
@@ -89,8 +94,14 @@ export async function createRestaurant(
 
   const slug = await generateUniqueSlug(name);
   const startDate = new Date();
-  const expireDate = addDays(startDate, 30);
-  const limits = PLAN_LIMITS[RestaurantPlan.BUSINESS];
+  const plan =
+    input.plan && PLAN_LIMITS[input.plan]
+      ? input.plan
+      : RestaurantPlan.BUSINESS;
+  const limits = PLAN_LIMITS[plan];
+  const expireDate = input.expireDate
+    ? new Date(input.expireDate)
+    : addDays(startDate, 30);
 
   const restaurant = await Restaurant.create({
     name,
@@ -99,12 +110,12 @@ export async function createRestaurant(
     email,
     phone,
     address,
-    plan: RestaurantPlan.BUSINESS,
+    plan,
     subscriptionStatus: SubscriptionStatus.ACTIVE,
     startDate,
     expireDate,
-    maxTables: limits.maxTables,
-    maxUsers: limits.maxUsers,
+    maxTables: input.maxTables ?? limits.maxTables,
+    maxUsers: input.maxUsers ?? limits.maxUsers,
     isActive: true,
   });
 
@@ -125,6 +136,15 @@ export async function createRestaurant(
       );
     }
   }
+
+  const { logActivity } = await import("@/service/activityLogService");
+  await logActivity({
+    restaurantId: restaurant._id,
+    action: "restaurant.created",
+    targetType: "restaurant",
+    targetId: String(restaurant._id),
+    message: `Шинэ ресторан үүслээ: ${restaurant.name}`,
+  });
 
   return restaurant;
 }
@@ -195,7 +215,7 @@ export async function activateRestaurant(
     return null;
   }
 
-  return Restaurant.findByIdAndUpdate(
+  const updated = await Restaurant.findByIdAndUpdate(
     id,
     {
       isActive: true,
@@ -203,6 +223,19 @@ export async function activateRestaurant(
     },
     { new: true, runValidators: true }
   );
+
+  if (updated) {
+    const { logActivity } = await import("@/service/activityLogService");
+    await logActivity({
+      restaurantId: updated._id,
+      action: "restaurant.activated",
+      targetType: "restaurant",
+      targetId: String(updated._id),
+      message: `Ресторан идэвхжлээ: ${updated.name}`,
+    });
+  }
+
+  return updated;
 }
 
 export async function deactivateRestaurant(
@@ -214,7 +247,7 @@ export async function deactivateRestaurant(
     return null;
   }
 
-  return Restaurant.findByIdAndUpdate(
+  const updated = await Restaurant.findByIdAndUpdate(
     id,
     {
       isActive: false,
@@ -222,4 +255,17 @@ export async function deactivateRestaurant(
     },
     { new: true, runValidators: true }
   );
+
+  if (updated) {
+    const { logActivity } = await import("@/service/activityLogService");
+    await logActivity({
+      restaurantId: updated._id,
+      action: "restaurant.deactivated",
+      targetType: "restaurant",
+      targetId: String(updated._id),
+      message: `Ресторан идэвхгүй боллоо: ${updated.name}`,
+    });
+  }
+
+  return updated;
 }

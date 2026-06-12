@@ -58,5 +58,6 @@ export async function getMostOrderedItem(merchantId: Types.ObjectId) {
     return mostOrderedItems;
   } catch (error) {
     console.error("Error while getting most ordered items", error);
+    return [];
   }
 }
