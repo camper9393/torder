@@ -1,6 +1,9 @@
 import { requirePlatformOwner } from "@/lib/auth";
 import { UserRole } from "@/model/user";
-import { listPlatformUsers } from "@/service/platformUserService";
+import {
+  createPlatformUser,
+  listPlatformUsers,
+} from "@/service/platformUserService";
 import { sendRJResponse } from "@/utils/api";
 import { NextRequest } from "next/server";
 
@@ -28,5 +31,44 @@ export async function GET(req: NextRequest) {
       message: "Серверийн алдаа гарлаа",
       status: 500,
     });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const authResult = await requirePlatformOwner(req);
+  if (authResult instanceof Response) return authResult;
+
+  try {
+    const body = await req.json();
+
+    if (
+      typeof body.role !== "string" ||
+      !Object.values(UserRole).includes(body.role as UserRole)
+    ) {
+      return sendRJResponse({
+        success: false,
+        message: "Буруу эрх (role)",
+        status: 400,
+      });
+    }
+
+    const data = await createPlatformUser(authResult, {
+      name: String(body.name ?? "").trim(),
+      email: String(body.email ?? "").trim(),
+      username: String(body.username ?? "").trim(),
+      password: String(body.password ?? ""),
+      role: body.role as UserRole,
+      restaurantId: String(body.restaurantId ?? ""),
+    });
+
+    return sendRJResponse({
+      success: true,
+      message: "Хэрэглэгч амжилттай үүсгэлээ",
+      data,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Серверийн алдаа гарлаа";
+    return sendRJResponse({ success: false, message, status: 400 });
   }
 }

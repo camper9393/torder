@@ -180,12 +180,12 @@ export default function RestaurantListPage() {
               <Input type="date" value={form.expireDate} onChange={(e) => setForm((f) => ({ ...f, expireDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">maxTables</label>
-              <Input value={form.maxTables} onChange={(e) => setForm((f) => ({ ...f, maxTables: e.target.value }))} />
+              <label className="text-sm font-medium text-slate-700">Ширээний дээд тоо</label>
+              <Input type="number" min="1" value={form.maxTables} onChange={(e) => setForm((f) => ({ ...f, maxTables: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">maxUsers</label>
-              <Input value={form.maxUsers} onChange={(e) => setForm((f) => ({ ...f, maxUsers: e.target.value }))} />
+              <label className="text-sm font-medium text-slate-700">Хэрэглэгчийн дээд тоо</label>
+              <Input type="number" min="1" value={form.maxUsers} onChange={(e) => setForm((f) => ({ ...f, maxUsers: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Эзэмшигчийн username *</label>

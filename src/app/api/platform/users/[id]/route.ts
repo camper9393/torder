@@ -1,6 +1,9 @@
 import { requirePlatformOwner } from "@/lib/auth";
 import { UserRole } from "@/model/user";
-import { updatePlatformUser } from "@/service/platformUserService";
+import {
+  deletePlatformUser,
+  updatePlatformUser,
+} from "@/service/platformUserService";
 import { sendRJResponse } from "@/utils/api";
 import { isValidObjectId } from "mongoose";
 import { NextRequest } from "next/server";
@@ -59,6 +62,39 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       success: true,
       message: "Амжилттай хадгаллаа",
       data,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Серверийн алдаа гарлаа";
+    return sendRJResponse({ success: false, message, status: 400 });
+  }
+}
+
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  const authResult = await requirePlatformOwner(req);
+  if (authResult instanceof Response) return authResult;
+
+  const { id } = await context.params;
+  if (!isValidObjectId(id)) {
+    return sendRJResponse({
+      success: false,
+      message: "Буруу хэрэглэгчийн ID",
+      status: 400,
+    });
+  }
+
+  try {
+    const result = await deletePlatformUser(authResult, id);
+    if (!result) {
+      return sendRJResponse({
+        success: false,
+        message: "Хэрэглэгч олдсонгүй",
+        status: 404,
+      });
+    }
+    return sendRJResponse({
+      success: true,
+      message: `"${result.name}" хэрэглэгч устгагдлаа`,
     });
   } catch (error) {
     const message =

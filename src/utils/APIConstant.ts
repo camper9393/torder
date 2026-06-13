@@ -22,6 +22,7 @@ export const GET_PLATFORM_RESTAURANTS: string = "/platform/restaurants"
 export const POST_PLATFORM_RESTAURANT: string = "/platform/restaurants"
 export const platformRestaurantById = (id: string) => `/platform/restaurants/${id}`
 export const PATCH_PLATFORM_RESTAURANT = (id: string) => `/platform/restaurants/${id}`
+export const DELETE_PLATFORM_RESTAURANT = (id: string) => `/platform/restaurants/${id}`
 export const POST_PLATFORM_RESTAURANT_ACTIVATE = (id: string) =>
   `/platform/restaurants/${id}/activate`
 export const POST_PLATFORM_RESTAURANT_DEACTIVATE = (id: string) =>
@@ -44,7 +45,9 @@ export const GET_PLATFORM_RESTAURANT_SUPPORT = (id: string) =>
 export const POST_PLATFORM_RESTAURANT_RESET_OWNER_PASSWORD = (id: string) =>
   `/platform/restaurants/${id}/reset-owner-password`
 export const GET_PLATFORM_USERS: string = "/platform/users"
+export const POST_PLATFORM_USER: string = "/platform/users"
 export const PATCH_PLATFORM_USER = (id: string) => `/platform/users/${id}`
+export const DELETE_PLATFORM_USER = (id: string) => `/platform/users/${id}`
 export const POST_PLATFORM_USER_RESET_PASSWORD = (id: string) =>
   `/platform/users/${id}/reset-password`
 export const GET_PLATFORM_PAYMENTS: string = "/platform/payments"

@@ -238,6 +238,117 @@ export async function activateRestaurant(
   return updated;
 }
 
+export type DeleteRestaurantResult = {
+  restaurantName: string;
+  deleted: Record<string, number>;
+};
+
+/**
+ * Ресторан болон түүнд хамаарах бүх өгөгдлийг бүрэн устгана (cascade).
+ * restaurantId болон холбогдох merchantId-аар түшиглэн tenant өгөгдлийг цэвэрлэнэ.
+ */
+export async function deleteRestaurant(
+  id: string | mongoose.Types.ObjectId
+): Promise<DeleteRestaurantResult | null> {
+  await mongoServer();
+
+  if (!mongoose.isValidObjectId(id)) {
+    return null;
+  }
+
+  const restaurant = await Restaurant.findById(id);
+  if (!restaurant) {
+    return null;
+  }
+
+  const restaurantId = restaurant._id;
+  const restaurantName = restaurant.name;
+
+  // Холбогдох merchantId-г өгөгдлөөс хайх (lookup-only, шинээр үүсгэхгүй)
+  const { Menu } = await import("@/model/menu");
+  const { MenuOrder } = await import("@/model/menuOrder");
+  const { Order } = await import("@/model/order");
+  const { TableLayout } = await import("@/model/tableLayout");
+
+  const merchantIds = new Set<string>();
+  for (const doc of [
+    await Menu.findOne({ restaurantId }).select("merchantId").lean(),
+    await MenuOrder.findOne({ restaurantId }).select("merchantId").lean(),
+    await Order.findOne({ restaurantId }).select("merchantId").lean(),
+    await TableLayout.findOne({ restaurantId }).select("merchantId").lean(),
+  ]) {
+    if (doc?.merchantId) merchantIds.add(String(doc.merchantId));
+  }
+  const merchantObjectIds = [...merchantIds].map(
+    (m) => new mongoose.Types.ObjectId(m)
+  );
+  const byMerchant =
+    merchantObjectIds.length > 0
+      ? { merchantId: { $in: merchantObjectIds } }
+      : null;
+
+  const deleted: Record<string, number> = {};
+
+  // restaurantId-аар түшиглэсэн collection-ууд
+  const { User } = await import("@/model/user");
+  const { PlatformPayment } = await import("@/model/platformPayment");
+  const { SupportRequest } = await import("@/model/supportRequest");
+  const { ActivityLog } = await import("@/model/activityLog");
+
+  deleted.users = (await User.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.menus = (await Menu.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.menuOrders =
+    (await MenuOrder.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.orders = (await Order.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.tableLayouts =
+    (await TableLayout.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.platformPayments =
+    (await PlatformPayment.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.supportRequests =
+    (await SupportRequest.deleteMany({ restaurantId })).deletedCount ?? 0;
+  deleted.activityLogs =
+    (await ActivityLog.deleteMany({ restaurantId })).deletedCount ?? 0;
+
+  // merchantId-аар түшиглэсэн legacy collection-ууд
+  if (byMerchant) {
+    const { TableHall } = await import("@/model/tableHall");
+    const { MQR } = await import("@/model/qrs");
+    const { WaiterCall } = await import("@/model/waiterCall");
+    const { InventoryItem } = await import("@/model/inventoryItem");
+    const { InventoryTransaction } = await import(
+      "@/model/inventoryTransaction"
+    );
+    const { Recipe } = await import("@/model/recipe");
+    const { Refund } = await import("@/model/refund");
+
+    deleted.tableHalls =
+      (await TableHall.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.qrs = (await MQR.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.waiterCalls =
+      (await WaiterCall.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.inventoryItems =
+      (await InventoryItem.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.inventoryTransactions =
+      (await InventoryTransaction.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.recipes = (await Recipe.deleteMany(byMerchant)).deletedCount ?? 0;
+    deleted.refunds = (await Refund.deleteMany(byMerchant)).deletedCount ?? 0;
+  }
+
+  await Restaurant.findByIdAndDelete(restaurantId);
+  deleted.restaurant = 1;
+
+  const { logActivity } = await import("@/service/activityLogService");
+  await logActivity({
+    action: "restaurant.deleted",
+    targetType: "restaurant",
+    targetId: String(restaurantId),
+    message: `Ресторан устгагдлаа: ${restaurantName}`,
+    metadata: deleted,
+  });
+
+  return { restaurantName, deleted };
+}
+
 export async function deactivateRestaurant(
   id: string | mongoose.Types.ObjectId
 ): Promise<IRestaurant | null> {

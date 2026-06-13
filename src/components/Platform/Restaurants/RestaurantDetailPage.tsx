@@ -16,6 +16,7 @@ import {
 } from "@/components/Platform/Restaurants/restaurantUi";
 import type { Restaurant, RestaurantPlan, SubscriptionStatus } from "@/types/restaurant";
 import {
+  DELETE_PLATFORM_RESTAURANT,
   GET_PLATFORM_RESTAURANT_PAYMENTS,
   GET_PLATFORM_RESTAURANT_SUMMARY,
   GET_PLATFORM_RESTAURANT_SUPPORT,
@@ -31,8 +32,10 @@ import {
   POST_PLATFORM_SUPPORT,
   POST_PLATFORM_USER_RESET_PASSWORD,
 } from "@/utils/APIConstant";
-import { getApi, patchApi, postApi } from "@/utils/common";
+import { deleteApi, getApi, patchApi, postApi } from "@/utils/common";
+import toast from "react-hot-toast";
 import {
+  ConfirmDialog,
   PlatformQuickAction,
   PlatformTabs,
   PlatformLoading,
@@ -47,6 +50,7 @@ import {
   RefreshCw,
   Settings,
   Shield,
+  Trash2,
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
@@ -134,6 +138,8 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const [showDelete, setShowDelete] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const [ownerPassword, setOwnerPassword] = React.useState("");
   const [userResetId, setUserResetId] = React.useState<string | null>(null);
   const [userResetPassword, setUserResetPassword] = React.useState("");
@@ -234,6 +240,21 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
     if (res?.success) await loadSummary();
     else setError("Алдаа гарлаа");
     setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const res = await deleteApi<{ success: boolean; message?: string }>({
+      url: DELETE_PLATFORM_RESTAURANT(id),
+    });
+    setDeleting(false);
+    if (!res?.success) {
+      toast.error(res?.message || "Устгахад алдаа гарлаа");
+      return;
+    }
+    toast.success(res.message || "Ресторан устгагдлаа");
+    setShowDelete(false);
+    router.push("/platform/restaurants");
   };
 
   const handleOwnerReset = async () => {
@@ -370,6 +391,15 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
             <Button size="sm" disabled title="Удахгүй" className="bg-blue-600 hover:bg-blue-700">
               <ExternalLink className="mr-1.5 h-4 w-4" />
               + Систем рүү нэвтрэх
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              onClick={() => setShowDelete(true)}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" />
+              Устгах
             </Button>
           </div>
         </div>
@@ -660,12 +690,12 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
               </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">maxTables</label>
-              <Input value={settingsForm.maxTables} onChange={(e) => setSettingsForm((f) => ({ ...f, maxTables: e.target.value }))} />
+              <label className="text-sm font-medium">Ширээний дээд тоо</label>
+              <Input type="number" min="1" value={settingsForm.maxTables} onChange={(e) => setSettingsForm((f) => ({ ...f, maxTables: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">maxUsers</label>
-              <Input value={settingsForm.maxUsers} onChange={(e) => setSettingsForm((f) => ({ ...f, maxUsers: e.target.value }))} />
+              <label className="text-sm font-medium">Хэрэглэгчийн дээд тоо</label>
+              <Input type="number" min="1" value={settingsForm.maxUsers} onChange={(e) => setSettingsForm((f) => ({ ...f, maxUsers: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Дуусах огноо</label>
@@ -687,6 +717,24 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
       ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDelete}
+        title="Ресторан устгах уу?"
+        description={
+          <span>
+            <span className="font-semibold text-slate-900">{restaurant.name}</span>{" "}
+            ресторан болон түүний бүх хэрэглэгч, цэс, захиалга, ширээ зэрэг
+            холбогдох өгөгдөл бүрмөсөн устах болно. Энэ үйлдлийг буцаах
+            боломжгүй.
+          </span>
+        }
+        confirmText={restaurant.name}
+        confirmLabel="Бүрмөсөн устгах"
+        loading={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setShowDelete(false)}
+      />
     </div>
   );
 }

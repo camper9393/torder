@@ -1,7 +1,91 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Loader2, type LucideIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AlertTriangle, Loader2, type LucideIcon } from "lucide-react";
+import React from "react";
+
+export function ConfirmDialog({
+  open,
+  title,
+  description,
+  confirmLabel = "Тийм",
+  cancelLabel = "Болих",
+  tone = "danger",
+  confirmText,
+  loading = false,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  title: string;
+  description?: React.ReactNode;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  tone?: "danger" | "default";
+  /** Хэрэв өгвөл хэрэглэгч энэ текстийг яг бичих ёстой (жишээ нь рестораны нэр) */
+  confirmText?: string;
+  loading?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const [typed, setTyped] = React.useState("");
+
+  React.useEffect(() => {
+    if (!open) setTyped("");
+  }, [open]);
+
+  if (!open) return null;
+
+  const canConfirm = confirmText ? typed.trim() === confirmText.trim() : true;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <div className="flex items-start gap-3">
+          {tone === "danger" ? (
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+            </span>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+            {description ? (
+              <div className="mt-1 text-sm text-slate-600">{description}</div>
+            ) : null}
+          </div>
+        </div>
+
+        {confirmText ? (
+          <div className="mt-4 space-y-1.5">
+            <label className="text-sm text-slate-600">
+              Баталгаажуулахын тулд{" "}
+              <span className="font-semibold text-slate-900">{confirmText}</span>{" "}
+              гэж бичнэ үү
+            </label>
+            <Input value={typed} onChange={(e) => setTyped(e.target.value)} />
+          </div>
+        ) : null}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            {cancelLabel}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={!canConfirm || loading}
+            className={
+              tone === "danger" ? "bg-red-600 hover:bg-red-700" : undefined
+            }
+          >
+            {loading ? "Түр хүлээнэ үү..." : confirmLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PlatformLoading({ label = "Ачааллаж байна..." }: { label?: string }) {
   return (

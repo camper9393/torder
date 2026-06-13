@@ -1,6 +1,10 @@
 import { requirePlatformOwner } from "@/lib/auth";
 import { RestaurantPlan, SubscriptionStatus } from "@/model/restaurant";
-import { getRestaurant, updateRestaurant } from "@/service/restaurantService";
+import {
+  deleteRestaurant,
+  getRestaurant,
+  updateRestaurant,
+} from "@/service/restaurantService";
 import { sendRJResponse } from "@/utils/api";
 import { serializeRestaurant } from "@/utils/platformSerialize";
 import { NextRequest } from "next/server";
@@ -96,6 +100,37 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     console.error("PATCH /api/platform/restaurants/[id] error:", error);
+    return sendRJResponse({
+      success: false,
+      message: "Серверийн алдаа гарлаа",
+      status: 500,
+    });
+  }
+}
+
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  const authResult = await requirePlatformOwner(req);
+  if (authResult instanceof Response) return authResult;
+
+  try {
+    const { id } = await context.params;
+    const result = await deleteRestaurant(id);
+
+    if (!result) {
+      return sendRJResponse({
+        success: false,
+        message: "Ресторан олдсонгүй",
+        status: 404,
+      });
+    }
+
+    return sendRJResponse({
+      success: true,
+      message: `"${result.restaurantName}" ресторан болон холбогдох өгөгдөл устгагдлаа`,
+      data: result,
+    });
+  } catch (error) {
+    console.error("DELETE /api/platform/restaurants/[id] error:", error);
     return sendRJResponse({
       success: false,
       message: "Серверийн алдаа гарлаа",

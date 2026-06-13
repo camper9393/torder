@@ -3,7 +3,11 @@ import { assignableRolesFor } from "@/lib/permissions";
 import { logActivity } from "@/service/activityLogService";
 import { Restaurant } from "@/model/restaurant";
 import { IUser, User, UserRole } from "@/model/user";
-import { resetStaffPassword, updateStaffUser } from "@/service/staffService";
+import {
+  createStaffUser,
+  resetStaffPassword,
+  updateStaffUser,
+} from "@/service/staffService";
 import { toPublicUser } from "@/service/userAuth";
 import { serializePublicUser } from "@/utils/platformSerialize";
 import mongoose, { Types } from "mongoose";
@@ -107,6 +111,85 @@ export async function resetPlatformUserPassword(
   });
 
   return true;
+}
+
+export async function createPlatformUser(
+  actor: IUser,
+  input: {
+    name: string;
+    email: string;
+    username: string;
+    password: string;
+    role: UserRole;
+    restaurantId: string;
+  }
+) {
+  await mongoServer();
+
+  if (!mongoose.isValidObjectId(input.restaurantId)) {
+    throw new Error("Буруу рестораны ID");
+  }
+
+  const restaurant = await Restaurant.findById(input.restaurantId).select("_id");
+  if (!restaurant) {
+    throw new Error("Ресторан олдсонгүй");
+  }
+
+  const created = await createStaffUser(actor, {
+    name: input.name,
+    email: input.email,
+    username: input.username,
+    password: input.password,
+    role: input.role,
+    restaurantId: new Types.ObjectId(input.restaurantId),
+  });
+
+  await logActivity({
+    actorUserId: actor._id,
+    actorRole: actor.role,
+    restaurantId: new Types.ObjectId(input.restaurantId),
+    action: "user.created",
+    targetType: "user",
+    targetId: String(created._id),
+    message: `Хэрэглэгч үүсгэлээ: ${created.name}`,
+  });
+
+  return created;
+}
+
+export async function deletePlatformUser(actor: IUser, userId: string) {
+  await mongoServer();
+
+  if (!mongoose.isValidObjectId(userId)) {
+    throw new Error("Буруу хэрэглэгчийн ID");
+  }
+
+  if (String(actor._id) === userId) {
+    throw new Error("Өөрийгөө устгах боломжгүй");
+  }
+
+  const target = await User.findById(userId);
+  if (!target) return null;
+
+  if (target.role === UserRole.PLATFORM_OWNER) {
+    throw new Error("Platform owner-г устгах боломжгүй");
+  }
+
+  await User.findByIdAndDelete(userId);
+
+  await logActivity({
+    actorUserId: actor._id,
+    actorRole: actor.role,
+    restaurantId: target.restaurantId
+      ? new Types.ObjectId(String(target.restaurantId))
+      : undefined,
+    action: "user.deleted",
+    targetType: "user",
+    targetId: userId,
+    message: `Хэрэглэгч устгагдлаа: ${target.name}`,
+  });
+
+  return { name: target.name };
 }
 
 export function platformAssignableRoles(actor: IUser): UserRole[] {
