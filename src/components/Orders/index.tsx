@@ -81,7 +81,7 @@ function index() {
     const exportItasPdf = async () => {
 
         const list = await fetchALList();
-        toast.loading("Preparing PDF...", { id: "qr-menu-export-all-pdf" });
+        toast.loading("Preparing PDF...", { id: "torder-export-all-pdf" });
         if (list.length === 0) {
             toast.success("No Data to Export");
             return;
@@ -158,7 +158,7 @@ function index() {
 
     
         doc.save("order-history.pdf");
-        toast.success("PDF Exported", { id: "qr-menu-export-all-pdf" });
+        toast.success("PDF Exported", { id: "torder-export-all-pdf" });
     };
 
 

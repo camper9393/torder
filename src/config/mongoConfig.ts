@@ -3,7 +3,7 @@ import mongoose from "mongoose"
 mongoose.Promise = Promise
 
 const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/qr-menu"
+  process.env.MONGO_URI || "mongodb://127.0.0.1:27017/torder"
 
 declare global {
   // eslint-disable-next-line no-var

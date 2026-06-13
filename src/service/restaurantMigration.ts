@@ -99,7 +99,7 @@ export async function ensureDefaultRestaurant(): Promise<mongoose.Types.ObjectId
     name: "Default Legacy Restaurant",
     slug: DEFAULT_RESTAURANT_SLUG,
     ownerName: "Legacy Owner",
-    email: "legacy@qr-menu.local",
+    email: "legacy@torder.local",
     phone: "00000000",
     address: "",
     plan: RestaurantPlan.BUSINESS,

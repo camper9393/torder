@@ -1,10 +1,10 @@
-# Contributing to QR Menu
+# Contributing to TOrder
 
-First off, thank you for considering contributing to QR Menu! It's people like you that make it such a great tool.
+First off, thank you for considering contributing to TOrder! It's people like you that make it such a great tool.
 
 ## Where do I go from here?
 
-If you've noticed a bug or have a feature request, make sure to check our [Issues](https://github.com/Softenrj/qr-menu/issues) section first to see if someone else has already created it. 
+If you've noticed a bug or have a feature request, make sure to check our Issues section first to see if someone else has already created it. 
 If not, feel free to **open a new issue**!
 
 ## Getting Started for Contributors
@@ -12,7 +12,7 @@ If not, feel free to **open a new issue**!
 1. **Fork the repository** on GitHub.
 2. **Clone your fork** locally:
    ```bash
-   git clone https://github.com/Softenrj/qr-menu.git
+   git clone https://github.com/TOrdermn/torder.git
    ```
 3. **Install the dependencies**:
    ```bash

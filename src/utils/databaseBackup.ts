@@ -12,7 +12,7 @@ export type DatabaseBackupPayload = {
     version: 1;
     exportedAt: string;
     merchantId: string;
-    app: "qr-menu";
+    app: "torder";
   };
   menuItems: unknown[];
   categories: {
@@ -36,7 +36,7 @@ export type DatabaseBackupPayload = {
 
 export function buildBackupFilename(date = new Date()): string {
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `qr-menu-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}.json`;
+  return `torder-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}.json`;
 }
 
 export async function buildMerchantDatabaseBackup(
@@ -71,7 +71,7 @@ export async function buildMerchantDatabaseBackup(
       version: 1,
       exportedAt: new Date().toISOString(),
       merchantId: String(merchantId),
-      app: "qr-menu",
+      app: "torder",
     },
     menuItems,
     categories: {

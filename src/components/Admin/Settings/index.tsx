@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils"
 
 function parseBackupFilename(disposition: string | null): string {
   if (!disposition) {
-    return `qr-menu-backup-${Date.now()}.json`
+    return `torder-backup-${Date.now()}.json`
   }
   const match = /filename="([^"]+)"/i.exec(disposition)
-  return match?.[1] ?? `qr-menu-backup-${Date.now()}.json`
+  return match?.[1] ?? `torder-backup-${Date.now()}.json`
 }
 
 export default function AdminSettingsPage() {

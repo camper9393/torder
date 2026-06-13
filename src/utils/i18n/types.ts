@@ -5,7 +5,7 @@ export type Locale = "mn" | "ko" | "en"
 
 export const LOCALES: Locale[] = ["mn", "ko", "en"]
 
-export const LOCALE_STORAGE_KEY = "qr-menu-locale"
+export const LOCALE_STORAGE_KEY = "torder-locale"
 
 export const LOCALE_LABELS: Record<Locale, string> = {
   mn: "Монгол",
