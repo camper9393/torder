@@ -31,7 +31,7 @@ export async function updatePlatformSettings(input: UpdatePlatformSettingsInput)
   }
 
   if (typeof input.platformName === "string") {
-    doc.platformName = input.platformName.trim() || "TOrderPro";
+    doc.platformName = input.platformName.trim() || "TOrder";
   }
   if (typeof input.supportEmail === "string") {
     doc.supportEmail = input.supportEmail.trim().toLowerCase();

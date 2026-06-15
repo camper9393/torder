@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { useDropzone, type FileRejection } from "react-dropzone"
 import { ImagePlus, Plus, Trash2 } from "lucide-react"
@@ -89,6 +90,29 @@ export function menuItemToFormValues(item: EditableMenuItem): MenuItemFormValues
 
 const MAX_IMAGE_SIZE = 12 * 1024 * 1024
 
+const IMAGE_RECOMMENDATION = (
+  <div className="mt-2 w-full max-w-[260px] text-left text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
+    <p className="font-medium text-foreground/80">Зөвлөмж:</p>
+    <ul className="mt-1 list-none space-y-0.5">
+      <li>• Харьцаа: 4:3 буюу өргөн тэгш өнцөгт</li>
+      <li>• Хамгийн тохиромжтой: 1200 × 900 px</li>
+      <li>• Хамгийн багадаа: 800 × 600 px</li>
+      <li>• Формат: JPG, PNG, WEBP</li>
+      <li>• Файлын хэмжээ: 5MB хүртэл</li>
+    </ul>
+  </div>
+)
+
+const TARGET_ASPECT_RATIO = 4 / 3
+
+/** ~10% tolerance from 4:3 */
+function isNearFourThreeAspectRatio(width: number, height: number): boolean {
+  if (width <= 0 || height <= 0) return true
+  const ratio = width / height
+  const deviation = Math.abs(ratio - TARGET_ASPECT_RATIO) / TARGET_ASPECT_RATIO
+  return deviation <= 0.1
+}
+
 type MenuItemFormProps = {
   mode: MenuItemFormMode
   idPrefix: string
@@ -106,6 +130,27 @@ export function MenuItemForm({
   sectionOptions,
   disabled = false,
 }: MenuItemFormProps) {
+  const [aspectWarning, setAspectWarning] = useState(false)
+
+  useEffect(() => {
+    if (!values.imagePreview) {
+      setAspectWarning(false)
+      return
+    }
+
+    const img = new window.Image()
+    img.onload = () => {
+      setAspectWarning(!isNearFourThreeAspectRatio(img.naturalWidth, img.naturalHeight))
+    }
+    img.onerror = () => setAspectWarning(false)
+    img.src = values.imagePreview
+
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [values.imagePreview])
+
   const patch = (partial: Partial<MenuItemFormValues>) => {
     onChange({ ...values, ...partial })
   }
@@ -164,33 +209,46 @@ export function MenuItemForm({
 
   return (
     <div className="space-y-4 py-2">
-      <div
-        {...getRootProps()}
-        className={`relative mx-auto flex aspect-square w-[320px] max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted/30 ${
-          isDragActive ? "ring-2 ring-primary" : ""
-        }`}
-      >
-        <input {...getInputProps()} />
-        {values.imagePreview ? (
-          <Image
-            src={values.imagePreview}
-            alt={values.nameMn || values.nameEn || "Хоол"}
-            fill
-            className="object-cover object-center"
-            unoptimized={values.imagePreview.startsWith("blob:")}
-            sizes="320px"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-2 px-4 text-center text-muted-foreground">
-            <ImagePlus className="h-8 w-8" />
-            <span className="text-sm font-medium">Зураг байхгүй</span>
-            <span className="text-xs">
-              {mode === "create"
-                ? "Зураг оруулах (заавал)"
-                : "Дарж эсвэл чирж зураг оруулна"}
-            </span>
-          </div>
-        )}
+      <div className="mx-auto w-full max-w-[320px] space-y-2">
+        <div
+          {...getRootProps()}
+          className={`relative flex aspect-[4/3] w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed bg-muted/30 ${
+            isDragActive ? "ring-2 ring-primary" : ""
+          }`}
+        >
+          <input {...getInputProps()} />
+          {values.imagePreview ? (
+            <Image
+              src={values.imagePreview}
+              alt={values.nameMn || values.nameEn || "Хоол"}
+              fill
+              className="object-contain object-center"
+              unoptimized={values.imagePreview.startsWith("blob:")}
+              sizes="320px"
+            />
+          ) : (
+            <div className="flex max-h-full flex-col items-center justify-center gap-2 overflow-y-auto px-3 py-4 text-center text-muted-foreground sm:px-4">
+              <ImagePlus className="h-8 w-8 shrink-0" />
+              <span className="text-sm font-medium">Зураг байхгүй</span>
+              <span className="text-xs">
+                {mode === "create"
+                  ? "Зураг оруулах (заавал)"
+                  : "Дарж эсвэл чирж зураг оруулна"}
+              </span>
+              {IMAGE_RECOMMENDATION}
+            </div>
+          )}
+        </div>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Зураг өргөн тэгш өнцөгт байвал таблет дээр хамгийн зөв харагдана.
+        </p>
+
+        {aspectWarning ? (
+          <p className="text-center text-xs font-medium text-amber-700" role="status">
+            Анхаар: 4:3 харьцаатай зураг ашиглавал таблет дээр илүү зөв харагдана.
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -281,9 +339,10 @@ export function MenuItemForm({
             Хэмжээ нэмэх
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Нэг үндсэн үнэ ашиглах бол хоосон орхино. Жишээ: Монгол «1 хүн», English «1
-          person» — өөр үнэтэй.
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Нэг хоол олон хэмжээтэй, өөр өөр үнэтэй үед ашиглана. Жишээ: 1 хүний порц, 2
+          хүний порц эсвэл 100гр, 200гр. Хэрвээ зөвхөн нэг үнэ ашиглах бол энэ хэсгийг
+          бөглөх шаардлагагүй.
         </p>
 
         {values.sizes.length > 0 ? (

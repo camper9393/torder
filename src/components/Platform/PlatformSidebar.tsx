@@ -1,7 +1,17 @@
 "use client";
 
 import { usePlatformUser } from "@/hooks/usePlatformUser";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { LOGOUT } from "@/utils/APIConstant";
+import { postApi } from "@/utils/common";
 import {
   Activity,
   AlertTriangle,
@@ -10,13 +20,16 @@ import {
   CreditCard,
   Headphones,
   LayoutDashboard,
+  LogOut,
   Puzzle,
   Settings,
   Shield,
   Users,
 } from "lucide-react";
+import { ErrorsUnreadBadge, SupportUnreadBadge } from "@/components/notifications/SupportUnreadBadge";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import React from "react";
 
 const NAV_ITEMS = [
   { href: "/platform/dashboard", label: "Хянах самбар", icon: LayoutDashboard },
@@ -35,9 +48,24 @@ const NAV_ITEMS = [
 export default function PlatformSidebar() {
   const pathname = usePathname() ?? "";
   const user = usePlatformUser();
+  const [logoutOpen, setLogoutOpen] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
+
+  const performLogout = React.useCallback(async () => {
+    if (typeof window === "undefined") return;
+    setLoggingOut(true);
+    try {
+      await postApi({ url: LOGOUT });
+    } catch {
+      // API алдаа гарсан ч локал төлөв цэвэрлээд login руу шилжинэ
+    } finally {
+      window.location.href = "/login";
+    }
+  }, []);
 
   return (
-    <aside className="flex w-[260px] shrink-0 flex-col bg-[#0f172a] text-slate-300">
+    <>
+      <aside className="flex min-h-svh w-[260px] shrink-0 flex-col bg-[#0f172a] text-slate-300">
       <div className="border-b border-white/10 px-5 py-5">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
@@ -68,26 +96,72 @@ export default function PlatformSidebar() {
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{item.label}</span>
+              {item.href === "/platform/support" ? (
+                <SupportUnreadBadge className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white" />
+              ) : null}
+              {item.href === "/platform/errors" ? (
+                <ErrorsUnreadBadge className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white" />
+              ) : null}
             </Link>
           );
         })}
-      </nav>
+        </nav>
 
-      <div className="border-t border-white/10 p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white">
-            {(user?.name?.charAt(0) || user?.username?.charAt(0) || "A").toUpperCase()}
+        <div className="mt-auto border-t border-white/10">
+          <div className="p-4 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 text-xs font-semibold text-white">
+                {(user?.name?.charAt(0) || user?.username?.charAt(0) || "A").toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">
+                  {user?.name || user?.username || "Admin"}
+                </p>
+                <p className="truncate text-xs text-slate-400">
+                  {user?.email || "super@order.com"}
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
-              {user?.name || user?.username || "Admin"}
-            </p>
-            <p className="truncate text-xs text-slate-400">
-              {user?.email || "super@order.com"}
-            </p>
+
+          <div className="px-3 pb-3">
+            <button
+              type="button"
+              onClick={() => setLogoutOpen(true)}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              <span className="truncate">Гарах</span>
+            </button>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+
+      <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <DialogContent showCloseButton={false} className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Системээс гарах уу?</DialogTitle>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loggingOut}
+              onClick={() => setLogoutOpen(false)}
+            >
+              Цуцлах
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={loggingOut}
+              onClick={() => void performLogout()}
+            >
+              {loggingOut ? "Гарч байна..." : "Гарах"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

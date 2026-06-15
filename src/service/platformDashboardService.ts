@@ -8,6 +8,14 @@ import {
   SubscriptionStatus,
 } from "@/model/restaurant";
 import { SupportRequest, SupportStatus } from "@/model/supportRequest";
+import {
+  countNewSupportToday,
+  countUnresolvedSupport,
+} from "@/service/supportTicketService";
+import {
+  countTodayForUser,
+  countUnreadForUser,
+} from "@/service/notificationService";
 import { SystemError, SystemErrorLevel } from "@/model/systemError";
 import { User, UserRole } from "@/model/user";
 import { Order } from "@/model/order";
@@ -18,7 +26,7 @@ function monthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export async function getPlatformDashboard() {
+export async function getPlatformDashboard(userId?: string) {
   await mongoServer();
 
   const now = new Date();
@@ -35,6 +43,10 @@ export async function getPlatformDashboard() {
     paidPayments,
     pendingPayments,
     supportOpenCount,
+    newSupportToday,
+    unresolvedSupportCount,
+    notificationUnreadCount,
+    notificationTodayCount,
     recentUsers,
     unresolvedErrors,
   ] = await Promise.all([
@@ -58,6 +70,10 @@ export async function getPlatformDashboard() {
     SupportRequest.countDocuments({
       status: { $in: [SupportStatus.NEW, SupportStatus.IN_PROGRESS, SupportStatus.WAITING] },
     }),
+    countNewSupportToday(),
+    countUnresolvedSupport(),
+    userId ? countUnreadForUser(userId) : Promise.resolve(0),
+    userId ? countTodayForUser(userId) : Promise.resolve(0),
     User.find({ role: { $ne: UserRole.PLATFORM_OWNER } })
       .sort({ createdAt: -1 })
       .limit(8)
@@ -188,6 +204,10 @@ export async function getPlatformDashboard() {
     paidCount: paidPayments,
     pendingPaymentCount: pendingPayments,
     supportOpenCount,
+    newSupportToday,
+    unresolvedSupportCount,
+    notificationUnreadCount,
+    notificationTodayCount,
     recentRestaurants: restaurants.slice(0, 8).map(serializeRestaurant),
     recentUsers: recentUsers.map((u) => serializePublicUser(u)),
     revenueChart,

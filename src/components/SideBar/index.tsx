@@ -47,8 +47,11 @@ import { LOGOUT } from "@/utils/APIConstant"
 import { cn } from "@/lib/utils"
 import { canAccessSidebarNav, type SidebarNavKey } from "@/lib/sidebarPermissions"
 import { useSidebarUser } from "@/hooks/useSidebarUser"
+import { usePosRestaurantContext } from "@/hooks/usePosRestaurantContext"
+import { usePlatformSupportMode } from "@/hooks/usePlatformSupportMode"
 import SidebarHoverExpand from "./SidebarHoverExpand"
 import { SidebarNavItem } from "./SidebarNavItem"
+import { POST_PLATFORM_RESTAURANT_EXIT_SYSTEM } from "@/utils/APIConstant"
 
 const SIDEBAR_LOGO_CANDIDATES = [
   "/img/Torder%20LOGO.png",
@@ -163,13 +166,18 @@ export default function AppSidebar() {
   const { state, setOpen, isMobile } = useSidebar()
   const { t } = useLocale()
   const { user } = useSidebarUser()
+  const { hasPosRestaurantContext } = usePosRestaurantContext()
+  const { isSupportMode, support } = usePlatformSupportMode()
+  const [exitingSupport, setExitingSupport] = useState(false)
   const n = t.nav
   const sidebarExpanded = state === "expanded"
   const [logoCandidateIndex, setLogoCandidateIndex] = useState(0)
   const logoSrc = SIDEBAR_LOGO_CANDIDATES[logoCandidateIndex] ?? SIDEBAR_LOGO_CANDIDATES[0]
 
   const reportsActive = pathname.startsWith("/admin/reports")
-  const reportsAllowed = canAccessSidebarNav(user, "reports")
+  const reportsAllowed = canAccessSidebarNav(user, "reports", {
+    hasPosRestaurantContext,
+  })
   const [reportsOpen, setReportsOpen] = useState(reportsActive)
 
   useEffect(() => {
@@ -247,6 +255,18 @@ export default function AppSidebar() {
     window.location.href = "/login"
   }, [])
 
+  const handleExitSupport = useCallback(async () => {
+    if (typeof window === "undefined") return
+    setExitingSupport(true)
+    try {
+      await postApi({ url: POST_PLATFORM_RESTAURANT_EXIT_SYSTEM })
+    } catch {
+      // support контекст цэвэрлээд platform руу буцна
+    } finally {
+      window.location.href = "/platform/restaurants"
+    }
+  }, [])
+
   const logoNavActive = pathname === "/"
 
   const handleReportsToggle = useCallback(() => {
@@ -274,7 +294,7 @@ export default function AppSidebar() {
                 <SidebarMenuButton
                   asChild
                   isActive={logoNavActive}
-                  tooltip="TOrderPro"
+                  tooltip="TOrder"
                   className={cn(MENU_BTN_CLASS, MENU_BTN_COLLAPSED_CLASS)}
                 >
                   <Link
@@ -286,7 +306,7 @@ export default function AppSidebar() {
                   >
                     <Image
                       src={logoSrc}
-                      alt="TOrderPro"
+                      alt="TOrder"
                       width={64}
                       height={26}
                       onError={handleLogoError}
@@ -307,6 +327,7 @@ export default function AppSidebar() {
                   key={item.navKey}
                   navKey={item.navKey}
                   user={user}
+                  hasPosRestaurantContext={hasPosRestaurantContext}
                   title={item.title}
                   href={item.url}
                   isActive={item.isActive(pathname)}
@@ -325,6 +346,7 @@ export default function AppSidebar() {
               <SidebarNavItem
                 navKey="reports"
                 user={user}
+                hasPosRestaurantContext={hasPosRestaurantContext}
                 title="Тайлан"
                 isActive={reportsActive}
                 icon={BarChart3}
@@ -387,6 +409,24 @@ export default function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="mt-auto p-2 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:py-2">
+        {isSupportMode && support ? (
+          <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2 py-2 group-data-[collapsible=icon]:hidden">
+            <p className="text-[11px] font-medium leading-snug text-amber-900">
+              Support mode:
+              <span className="mt-0.5 block truncate font-semibold">
+                {support.restaurantName}
+              </span>
+            </p>
+            <button
+              type="button"
+              disabled={exitingSupport}
+              onClick={() => void handleExitSupport()}
+              className="mt-2 w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-xs font-medium text-amber-950 transition hover:bg-amber-100 disabled:opacity-60"
+            >
+              {exitingSupport ? "Гарч байна..." : "Ресторанаас гарах"}
+            </button>
+          </div>
+        ) : null}
         <div className="border-t border-slate-200 pt-1.5">
           <SidebarMenu className="group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-0.5">
             {UTILITY_NAV_ITEMS.map((item) => (
@@ -394,6 +434,7 @@ export default function AppSidebar() {
                 key={item.navKey}
                 navKey={item.navKey}
                 user={user}
+                hasPosRestaurantContext={hasPosRestaurantContext}
                 title={item.title}
                 href={item.url}
                 isActive={item.isActive(pathname)}

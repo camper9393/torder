@@ -16,6 +16,7 @@ import { GET_PLATFORM_DASHBOARD } from "@/utils/APIConstant";
 import { getApi } from "@/utils/common";
 import {
   AlertCircle,
+  Bell,
   Building2,
   CreditCard,
   Headphones,
@@ -35,6 +36,10 @@ type DashboardData = {
   paidCount: number;
   pendingPaymentCount: number;
   supportOpenCount: number;
+  newSupportToday: number;
+  unresolvedSupportCount: number;
+  notificationUnreadCount: number;
+  notificationTodayCount: number;
   recentRestaurants: { _id: string; name: string; plan: string; createdAt?: string }[];
   recentUsers: { _id: string; name: string; role: string; restaurantName?: string }[];
   revenueChart: { month: string; revenue: number; estimated: boolean }[];
@@ -103,6 +108,39 @@ export default function PlatformDashboardPage() {
           value={`${data.totalRevenueEstimate.toLocaleString()} ₮`}
           icon={CreditCard}
           tone="amber"
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Link href="/platform/support">
+          <PlatformStatCard
+            label="Шинэ support хүсэлт"
+            value={data.newSupportToday}
+            sub="Өнөөдөр"
+            icon={Headphones}
+            tone="blue"
+          />
+        </Link>
+        <Link href="/platform/support">
+          <PlatformStatCard
+            label="Шийдэгдээгүй хүсэлт"
+            value={data.unresolvedSupportCount}
+            icon={Headphones}
+            tone="amber"
+          />
+        </Link>
+        <PlatformStatCard
+          label="Өнөөдрийн notification"
+          value={data.notificationTodayCount}
+          icon={Bell}
+          tone="slate"
+        />
+        <PlatformStatCard
+          label="Нийт notification"
+          value={data.notificationUnreadCount}
+          sub="Уншаагүй"
+          icon={Bell}
+          tone="blue"
         />
       </div>
 

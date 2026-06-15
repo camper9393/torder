@@ -44,7 +44,7 @@ import type { CategoryIconName } from "@/utils/categoryIcons"
 import type { SectionMetaMap } from "@/utils/sectionMeta"
 import { buildSectionMetaFromKeys } from "@/utils/sectionMeta"
 import { ApiResponse } from "@/utils/api"
-import { deleteApi, getApi, patchApi } from "@/utils/common"
+import { deleteApi, getApi, getApiErrorMessage, patchApi } from "@/utils/common"
 import {
   MENUBUILDER_LISTS,
   MENU_ITEM_BY_ID,
@@ -139,10 +139,9 @@ const MenuBuilderTabs = () => {
       console.info("[MenuBuilder] GET /api/menu/lists", res)
 
       if (!res?.success) {
-        toast.error(
-          `${res?.message || "Цэс ачаалж чадсангүй"} — ${JSON.stringify(res)}`,
-          { duration: 8000 }
-        )
+        toast.error(getApiErrorMessage(res, "Цэс ачаалж чадсангүй"), {
+          duration: 8000,
+        })
         return
       }
 
@@ -154,9 +153,10 @@ const MenuBuilderTabs = () => {
           : null
 
       if (!rows) {
-        toast.error(`Цэсний жагсаалтын хариу буруу байна: ${JSON.stringify(res)}`, {
-          duration: 8000,
-        })
+        toast.error(
+          getApiErrorMessage(res, "Цэсний жагсаалтын хариу буруу байна"),
+          { duration: 8000 }
+        )
         return
       }
 

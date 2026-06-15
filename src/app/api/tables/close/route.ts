@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
         {
           $set: {
             status: "closed",
-            paidAmount: order.total,
-            paymentMethod,
+            paidAmount: order.paidAmount ?? order.total,
+            paymentMethod: order.paymentMethod ?? paymentMethod,
           },
         }
       );

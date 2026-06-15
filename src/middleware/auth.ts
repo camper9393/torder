@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { MERCHANT_TOKEN_COOKIE } from "@/lib/auth";
 import { verifyToken } from "@/utils/jwt";
 import mongoose from "mongoose";
 import mongoServer from "@/config/mongoConfig";
@@ -12,8 +13,8 @@ export async function resolveMerchantId(
 }
 
 export const verifyAuth = async (req: NextRequest) => {
-  await mongoServer()
-  const token = req.cookies.get("token")?.value;
+  await mongoServer();
+  const token = req.cookies.get(MERCHANT_TOKEN_COOKIE)?.value;
 
   if (!token) {
     return NextResponse.json(
@@ -33,7 +34,7 @@ export const verifyAuth = async (req: NextRequest) => {
     }
 
     return merchantId;
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, message: "Invalid token" },
       { status: 401 }

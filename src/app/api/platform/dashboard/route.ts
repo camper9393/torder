@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (authResult instanceof Response) return authResult;
 
   try {
-    const data = await getPlatformDashboard();
+    const data = await getPlatformDashboard(String(authResult._id));
     return sendRJResponse({ success: true, message: "Амжилттай", data });
   } catch (error) {
     console.error("GET /api/platform/dashboard error:", error);

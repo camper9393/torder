@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  SIDEBAR_DENIED_TOOLTIP,
   type SidebarNavKey,
   canAccessSidebarNav,
+  getSidebarNavDeniedTooltip,
   type SidebarUser,
 } from "@/lib/sidebarPermissions";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ const DISABLED_NAV_CLASS =
 type Props = {
   navKey: SidebarNavKey;
   user: SidebarUser | null;
+  hasPosRestaurantContext?: boolean;
   title: string;
   href?: string;
   isActive: boolean;
@@ -43,6 +44,7 @@ type Props = {
 export function SidebarNavItem({
   navKey,
   user,
+  hasPosRestaurantContext = true,
   title,
   href,
   isActive,
@@ -57,7 +59,9 @@ export function SidebarNavItem({
   onClick,
   children,
 }: Props) {
-  const allowed = canAccessSidebarNav(user, navKey);
+  const sidebarOptions = { hasPosRestaurantContext };
+  const allowed = canAccessSidebarNav(user, navKey, sidebarOptions);
+  const deniedTooltip = getSidebarNavDeniedTooltip(user, navKey, sidebarOptions);
   const displayLabel = label ?? title;
 
   const inner = (
@@ -112,7 +116,7 @@ export function SidebarNavItem({
         <Tooltip>
           <TooltipTrigger asChild>{button}</TooltipTrigger>
           <TooltipContent side="right" align="center">
-            {SIDEBAR_DENIED_TOOLTIP}
+            {deniedTooltip}
           </TooltipContent>
         </Tooltip>
       ) : (

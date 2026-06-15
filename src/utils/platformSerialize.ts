@@ -80,6 +80,7 @@ export function serializeSupport(doc: ISupportRequest & { restaurantName?: strin
     createdBy: doc.createdBy ? String(doc.createdBy) : undefined,
     assignedTo: doc.assignedTo ? String(doc.assignedTo) : undefined,
     adminNote: doc.adminNote ?? "",
+    imageUrls: doc.imageUrls ?? [],
     createdAt: toIso(doc.createdAt)!,
     updatedAt: toIso(doc.updatedAt)!,
   };

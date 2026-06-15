@@ -1,11 +1,13 @@
-import { getCurrentUser, hasRole } from "@/lib/auth";
+import { getCurrentUser, MERCHANT_TOKEN_COOKIE } from "@/lib/auth";
 import { type PermissionKey, userHasPermission } from "@/lib/permissions";
 import mongoServer from "@/config/mongoConfig";
 import { IRestaurant, Restaurant } from "@/model/restaurant";
 import { IUser, UserRole } from "@/model/user";
 import { Menu } from "@/model/menu";
 import { Order } from "@/model/order";
+import { Merchants } from "@/model/merchants";
 import { verifyAuth } from "@/middleware/auth";
+import { verifyToken } from "@/utils/jwt";
 import mongoose from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { isValidObjectId, Types } from "mongoose";
@@ -328,33 +330,72 @@ export async function requirePosScope(
   return scope;
 }
 
+/**
+ * /api/auth/session-тай ижил дараалал: merchant token → user_token.
+ * resolveTenantScope-ийн өмнө нь user_token-оор user олдсон ч merchantId null
+ * болох тохиолдол session амжилттай, menu API 401 болдог байсан.
+ */
+async function resolveScopeLikeSession(
+  req: NextRequest
+): Promise<TenantScope | null> {
+  const merchantCookie = req.cookies.get(MERCHANT_TOKEN_COOKIE)?.value;
+  if (merchantCookie) {
+    const merchantId = verifyToken(merchantCookie);
+    if (merchantId) {
+      const merchant = await Merchants.findById(merchantId).select("_id").lean();
+      if (merchant) {
+        const merchantObjectId = new Types.ObjectId(String(merchantId));
+        const restaurantId = await resolveRestaurantIdForMerchant(merchantObjectId);
+        const user = await getCurrentUser(req);
+        return {
+          user,
+          isPlatformOwner: user ? isPlatformOwner(user) : false,
+          restaurantId,
+          merchantId: merchantObjectId,
+        };
+      }
+    }
+  }
+
+  const user = await getCurrentUser(req);
+  if (!user) {
+    return null;
+  }
+
+  const platformOwner = isPlatformOwner(user);
+  let restaurantId = user.restaurantId
+    ? new Types.ObjectId(String(user.restaurantId))
+    : null;
+  let merchantId: Types.ObjectId | null = null;
+
+  if (!restaurantId && platformOwner) {
+    restaurantId = await resolveDefaultLegacyRestaurantId();
+  }
+
+  if (restaurantId) {
+    merchantId = await resolveMerchantIdForRestaurant(restaurantId);
+  }
+
+  if (!merchantId) {
+    return null;
+  }
+
+  return {
+    user,
+    isPlatformOwner: platformOwner,
+    restaurantId,
+    merchantId,
+  };
+}
+
 export async function resolveTenantScope(
   req: NextRequest
 ): Promise<TenantScope | NextResponse> {
   await mongoServer();
 
-  const user = await getCurrentUser(req);
-  if (user) {
-    const platformOwner = isPlatformOwner(user);
-    let restaurantId = user.restaurantId
-      ? new Types.ObjectId(String(user.restaurantId))
-      : null;
-    let merchantId: Types.ObjectId | null = null;
-
-    if (platformOwner && !restaurantId) {
-      const legacy = await resolvePlatformOwnerLegacyScope(user);
-      restaurantId = legacy.restaurantId;
-      merchantId = legacy.merchantId;
-    } else if (restaurantId) {
-      merchantId = await resolveMerchantIdForRestaurant(restaurantId);
-    }
-
-    return {
-      user,
-      isPlatformOwner: platformOwner,
-      restaurantId,
-      merchantId,
-    };
+  const sessionScope = await resolveScopeLikeSession(req);
+  if (sessionScope) {
+    return sessionScope;
   }
 
   const authResult = await verifyAuth(req);

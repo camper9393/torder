@@ -1,11 +1,7 @@
 "use client"
 
-import { IMerchants } from "@/model/merchants";
-import { clearMerchant, setMerchant } from "@/store/reducer/merchant";
 import { store } from "@/store/store";
-import { ApiResponse } from "@/utils/api";
-import { SESSION } from "@/utils/APIConstant";
-import { getApi } from "@/utils/common";
+import { hydrateMerchantSession } from "@/utils/authSession";
 import { isConsumerTabletRoute, isKitchenTvRoute } from "@/utils/routes";
 import { usePathname } from "next/navigation";
 import React from "react"
@@ -23,22 +19,7 @@ export function ReduxProvider({
       return
     }
 
-    const hydrate = async () => {
-      try {
-        const res = await getApi<ApiResponse<IMerchants>>({
-          url: SESSION
-        })
-
-        if (!res?.success) {
-          store.dispatch(clearMerchant())
-          return
-        }
-        store.dispatch(setMerchant(res?.data as any))
-      } catch {
-        store.dispatch(clearMerchant())
-      }
-    }
-      hydrate()
+    void hydrateMerchantSession()
     }, [pathname])
 
     return (

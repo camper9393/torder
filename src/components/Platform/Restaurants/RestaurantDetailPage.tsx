@@ -27,6 +27,7 @@ import {
   POST_PLATFORM_PAYMENT,
   POST_PLATFORM_RESTAURANT_ACTIVATE,
   POST_PLATFORM_RESTAURANT_DEACTIVATE,
+  POST_PLATFORM_RESTAURANT_ENTER_SYSTEM,
   POST_PLATFORM_RESTAURANT_EXTEND_SHORT,
   POST_PLATFORM_RESTAURANT_RESET_OWNER_PASSWORD,
   POST_PLATFORM_SUPPORT,
@@ -214,6 +215,39 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
 
   const restaurant = summary?.restaurant;
 
+  const handleEnterSystem = async () => {
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const res = await postApi<{
+        success: boolean;
+        message?: string;
+        data?: { redirectPath?: string };
+      }>({
+        url: POST_PLATFORM_RESTAURANT_ENTER_SYSTEM(id),
+      });
+
+      if (!res?.success) {
+        setError(res?.message || "Системд нэвтрэхэд алдаа гарлаа");
+        return;
+      }
+
+      const redirectPath = res.data?.redirectPath || "/admin/dashboard";
+      const targetUrl = new URL(redirectPath, window.location.origin).href;
+      const opened = window.open(targetUrl, "_blank", "noopener,noreferrer");
+
+      if (!opened) {
+        toast.error("Шинэ цонх нээж чадсангүй");
+        return;
+      }
+    } catch {
+      setError("Системд нэвтрэхэд алдаа гарлаа");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleExtend = async () => {
     setSaving(true);
     setSuccess("");
@@ -388,7 +422,13 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
               <RefreshCw className="mr-1.5 h-4 w-4" />
               Хугацаа сунгах
             </Button>
-            <Button size="sm" disabled title="Удахгүй" className="bg-blue-600 hover:bg-blue-700">
+            <Button
+              size="sm"
+              disabled={saving || !restaurant?.isActive}
+              onClick={() => void handleEnterSystem()}
+              title="Шинэ tab дээр систем нээнэ"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
               <ExternalLink className="mr-1.5 h-4 w-4" />
               + Систем рүү нэвтрэх
             </Button>
@@ -469,7 +509,13 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
               <PlatformQuickAction label="Хэрэглэгч нэмэх" icon={UserPlus} onClick={() => setTab("users")} />
               <PlatformQuickAction label="Эрх тохируулах" icon={Shield} onClick={() => router.push("/platform/roles")} />
               <PlatformQuickAction label="Төлбөрийн түүх" icon={CreditCard} onClick={() => setTab("payments")} />
-              <PlatformQuickAction label="Систем рүү нэвтрэх" icon={ExternalLink} />
+              <div title="Шинэ tab дээр систем нээнэ">
+                <PlatformQuickAction
+                  label="Систем рүү нэвтрэх"
+                  icon={ExternalLink}
+                  onClick={() => void handleEnterSystem()}
+                />
+              </div>
               <PlatformQuickAction label="Support үүсгэх" icon={Headphones} onClick={() => setTab("support")} />
               <PlatformQuickAction label="Ресторан засах" icon={Settings} onClick={() => setTab("settings")} />
             </div>

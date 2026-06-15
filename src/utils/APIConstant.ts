@@ -5,6 +5,9 @@ export const MERCHANT_SIGNIN: string = "/auth/signin"
 export const LOGIN: string = "/auth/signup"
 export const LOGOUT: string = "/auth/logout"
 export const USER_LOGIN: string = "/auth/login"
+export const USER_PASSCODE_LOGIN: string = "/auth/passcode-login"
+export const USER_PASSCODE: string = "/auth/passcode"
+export const USER_PASSCODE_SETUP: string = "/auth/passcode/setup"
 export const USER_ME: string = "/auth/me"
 export const GET_AUTH_PROFILE: string = "/auth/profile"
 export const PATCH_AUTH_PROFILE: string = "/auth/profile"
@@ -44,6 +47,10 @@ export const GET_PLATFORM_RESTAURANT_SUPPORT = (id: string) =>
   `/platform/restaurants/${id}/support`
 export const POST_PLATFORM_RESTAURANT_RESET_OWNER_PASSWORD = (id: string) =>
   `/platform/restaurants/${id}/reset-owner-password`
+export const POST_PLATFORM_RESTAURANT_ENTER_SYSTEM = (id: string) =>
+  `/platform/restaurants/${id}/enter-system`
+export const POST_PLATFORM_RESTAURANT_EXIT_SYSTEM =
+  "/platform/restaurants/exit-system"
 export const GET_PLATFORM_USERS: string = "/platform/users"
 export const POST_PLATFORM_USER: string = "/platform/users"
 export const PATCH_PLATFORM_USER = (id: string) => `/platform/users/${id}`
@@ -56,12 +63,25 @@ export const PATCH_PLATFORM_PAYMENT = (id: string) => `/platform/payments/${id}`
 export const GET_PLATFORM_SUPPORT: string = "/platform/support"
 export const POST_PLATFORM_SUPPORT: string = "/platform/support"
 export const PATCH_PLATFORM_SUPPORT = (id: string) => `/platform/support/${id}`
+export const GET_PLATFORM_SUPPORT_DETAIL = (id: string) => `/platform/support/${id}`
+export const POST_PLATFORM_SUPPORT_MESSAGE = (id: string) =>
+  `/platform/support/${id}/messages`
 export const GET_PLATFORM_ERRORS: string = "/platform/errors"
 export const PATCH_PLATFORM_ERROR = (id: string) => `/platform/errors/${id}`
 export const GET_PLATFORM_REPORTS: string = "/platform/reports"
 export const GET_PLATFORM_SETTINGS: string = "/platform/settings"
 export const PATCH_PLATFORM_SETTINGS: string = "/platform/settings"
 export const GET_PLATFORM_ACTIVITY: string = "/platform/activity"
+
+// merchant support & notifications
+export const GET_SUPPORT: string = "/support"
+export const POST_SUPPORT: string = "/support"
+export const POST_SUPPORT_UPLOAD: string = "/support/upload"
+export const GET_SUPPORT_DETAIL = (id: string) => `/support/${id}`
+export const POST_SUPPORT_MESSAGE = (id: string) => `/support/${id}/messages`
+export const GET_NOTIFICATIONS: string = "/notifications"
+export const PATCH_NOTIFICATION_READ = (id: string) => `/notifications/${id}`
+export const POST_NOTIFICATIONS_READ_ALL: string = "/notifications"
 
 // Menu
 export const MENUBUILDER_LISTS: string = "/menu/lists"
@@ -112,6 +132,7 @@ export const GET_ADMIN_REPORTS_VAT: string = "/admin/reports/vat"
 export const GET_TABLES: string = "/tables"
 export const GET_TABLE_DETAIL: string = "/tables"
 export const POST_CLOSE_TABLE: string = "/tables/close"
+export const POST_TABLE_PAY: string = "/tables/pay"
 export const POST_TABLE_MANUAL_ORDER: string = "/tables/order"
 export const GET_TABLES_LAYOUT: string = "/tables/layout"
 export const PUT_TABLES_LAYOUT: string = "/tables/layout"

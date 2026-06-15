@@ -10,6 +10,11 @@ type OrderDoc = {
   status: string
   paymentMethod?: string
   paidAmount?: number
+  vatType?: string
+  guestCount?: number
+  discountAmount?: number
+  changeAmount?: number
+  paidAt?: Date | string
   refundStatus?: string
   refundedAmount?: number
   refundedItems?: IRefundedLineItem[]
@@ -43,6 +48,15 @@ export function serializeKitchenOrder(doc: OrderDoc): KitchenOrder {
     status: doc.status as OrderStatus,
     paymentMethod: doc.paymentMethod,
     paidAmount: doc.paidAmount ?? doc.total,
+    vatType: doc.vatType,
+    guestCount: doc.guestCount,
+    discountAmount: doc.discountAmount ?? 0,
+    changeAmount: doc.changeAmount ?? 0,
+    paidAt: doc.paidAt
+      ? typeof doc.paidAt === "string"
+        ? doc.paidAt
+        : doc.paidAt.toISOString()
+      : undefined,
     refundStatus: (doc.refundStatus as KitchenOrder["refundStatus"]) ?? "none",
     refundedAmount: doc.refundedAmount ?? 0,
     refundedItems: (doc.refundedItems ?? []).map((row) => ({

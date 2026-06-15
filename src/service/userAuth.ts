@@ -47,6 +47,21 @@ export async function ensureInitialPlatformOwner(): Promise<boolean> {
   return true;
 }
 
+export function buildUserLoginResult(
+  user: IUser
+): { user: PublicUser; token: string } | null {
+  if (!user.isActive) {
+    return null;
+  }
+
+  const token = generateUserToken(user._id);
+  if (!token) {
+    return null;
+  }
+
+  return { user: toPublicUser(user), token };
+}
+
 export async function loginUser(
   login: string,
   password: string
@@ -59,7 +74,7 @@ export async function loginUser(
     $or: [{ email: normalizedLogin }, { username: normalizedLogin }],
   }).select("+passwordHash");
 
-  if (!user || !user.isActive) {
+  if (!user) {
     return null;
   }
 
@@ -68,10 +83,5 @@ export async function loginUser(
     return null;
   }
 
-  const token = generateUserToken(user._id);
-  if (!token) {
-    return null;
-  }
-
-  return { user: toPublicUser(user), token };
+  return buildUserLoginResult(user);
 }

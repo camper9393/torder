@@ -8,6 +8,15 @@ import { verifyUserToken } from "@/utils/userJwt";
 import { isValidObjectId, Types } from "mongoose";
 
 export const USER_TOKEN_COOKIE = "user_token";
+/** Хуучин POS / merchant signin cookie (verifyAuth, session) */
+export const MERCHANT_TOKEN_COOKIE = "token";
+
+const LOGIN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "strict" as const,
+  path: "/",
+  maxAge: 60 * 60 * 24 * 7,
+};
 
 function getTokenFromRequest(req?: NextRequest): string | undefined {
   if (req) {
@@ -19,9 +28,12 @@ function getTokenFromRequest(req?: NextRequest): string | undefined {
 export async function getCurrentUser(req?: NextRequest): Promise<IUser | null> {
   await mongoServer();
 
-  const token =
-    getTokenFromRequest(req) ?? (await cookies()).get(USER_TOKEN_COOKIE)?.value;
+  const userTokenFromReq = getTokenFromRequest(req);
+  const userTokenFromStore = req
+    ? undefined
+    : (await cookies()).get(USER_TOKEN_COOKIE)?.value;
 
+  const token = userTokenFromReq ?? userTokenFromStore;
   if (!token) {
     return null;
   }
@@ -172,4 +184,60 @@ export async function resolveStaffRestaurantId(
   }
 
   return new Types.ObjectId(String(actor.restaurantId));
+}
+
+/** User login-ийн дараа POS merchant JWT үүсгэх (session route-той ижил логик) */
+export async function resolveMerchantTokenForLoginUser(
+  user: Pick<IUser, "role" | "restaurantId">
+): Promise<string | null> {
+  const {
+    isPlatformOwner,
+    resolveDefaultLegacyRestaurantId,
+    resolveMerchantIdForRestaurant,
+  } = await import("@/lib/tenant");
+  const { tokenGenerator } = await import("@/utils/jwt");
+  const { Merchants } = await import("@/model/merchants");
+
+  let restaurantId: Types.ObjectId | null = user.restaurantId
+    ? new Types.ObjectId(String(user.restaurantId))
+    : null;
+
+  if (!restaurantId && isPlatformOwner(user)) {
+    restaurantId = await resolveDefaultLegacyRestaurantId();
+  }
+  if (!restaurantId) {
+    return null;
+  }
+
+  const merchantId = await resolveMerchantIdForRestaurant(restaurantId);
+  if (!merchantId) {
+    return null;
+  }
+
+  const merchant = await Merchants.findById(merchantId).select("uid").lean();
+  if (!merchant?.uid) {
+    return null;
+  }
+
+  return tokenGenerator({ merchantId, uid: merchant.uid });
+}
+
+/**
+ * Email / PIN login cookie — user_token + POS merchant token (хоёуланг ижил тохиргоо).
+ */
+export async function applyUserLoginCookies(
+  res: NextResponse,
+  userToken: string,
+  user?: Pick<IUser, "role" | "restaurantId"> | null
+): Promise<void> {
+  res.cookies.set(USER_TOKEN_COOKIE, userToken, LOGIN_COOKIE_OPTIONS);
+
+  if (!user) {
+    return;
+  }
+
+  const merchantToken = await resolveMerchantTokenForLoginUser(user);
+  if (merchantToken) {
+    res.cookies.set(MERCHANT_TOKEN_COOKIE, merchantToken, LOGIN_COOKIE_OPTIONS);
+  }
 }

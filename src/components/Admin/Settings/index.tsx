@@ -4,6 +4,7 @@ import React from "react"
 import { Database, Download, Loader2 } from "lucide-react"
 import { GET_DATABASE_BACKUP } from "@/utils/APIConstant"
 import { cn } from "@/lib/utils"
+import PasscodeManager from "@/components/Auth/PasscodeManager"
 
 function parseBackupFilename(disposition: string | null): string {
   if (!disposition) {
@@ -113,6 +114,10 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </section>
+
+      <div className="mt-6">
+        <PasscodeManager />
+      </div>
     </div>
   )
 }

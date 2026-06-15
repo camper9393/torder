@@ -371,7 +371,7 @@ export default function OrderHistoryReportPage() {
         open={Boolean(billOrder)}
         onClose={() => setBillOrder(null)}
         order={billOrder}
-        restaurantName="TOrderPro"
+        restaurantName="TOrder"
       />
     </div>
   )

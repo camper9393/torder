@@ -14,10 +14,8 @@ export async function GET(req: NextRequest) {
   try {
     await mongoServer();
 
-    const scope = await requirePosScope(req, { permission: Permission.MENU });
-    if (scope instanceof Response) {
-      return sendRJResponse({
-        success: false,
+    const scope = await requirePosScope(req, { permission: Permission.MENU });    if (scope instanceof Response) {
+      return sendRJResponse({        success: false,
         message:
           scope.status === 403
             ? "Энэ үйлдлийг хийх эрхгүй байна"

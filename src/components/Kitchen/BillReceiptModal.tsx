@@ -19,6 +19,7 @@ import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine } from "@/utils/menuBilingual"
 import { cn } from "@/lib/utils"
+import type { TablePaymentReceiptData } from "@/utils/tablePayment"
 
 type BillReceiptModalProps = {
   open: boolean
@@ -30,6 +31,12 @@ type BillReceiptModalProps = {
   closeTableLabel?: string
   confirmCloseTable?: string
   closingTable?: boolean
+  /** POS payment receipt details */
+  payment?: TablePaymentReceiptData | null
+  /** After payment — show finish without closing table */
+  onFinish?: () => void
+  finishLabel?: string
+  showQrPlaceholder?: boolean
 }
 
 function BillReceiptModal({
@@ -41,6 +48,10 @@ function BillReceiptModal({
   closeTableLabel = "Close Table",
   confirmCloseTable = "Are you sure you want to close this table?",
   closingTable = false,
+  payment = null,
+  onFinish,
+  finishLabel = "Дуусгах",
+  showQrPlaceholder = false,
 }: BillReceiptModalProps) {
   const { t, locale, dateLocale } = useLocale()
   const c = t.common
@@ -58,7 +69,8 @@ function BillReceiptModal({
   if (!order) return null
 
   const receiptItems = order.items
-  const receiptTotal = computeOrderTotal(receiptItems)
+  const receiptSubtotal = payment?.subtotal ?? computeOrderTotal(receiptItems)
+  const receiptTotal = payment?.amountDue ?? computeOrderTotal(receiptItems)
   const orderIdShort = String(order._id).slice(-8).toUpperCase()
 
   const formatReceiptDate = (value: string) =>
@@ -66,6 +78,9 @@ function BillReceiptModal({
       dateStyle: "medium",
       timeStyle: "short",
     })
+
+  const receiptDate = payment?.paidAt ?? order.createdAt
+  const isPaidReceipt = Boolean(payment)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -81,17 +96,42 @@ function BillReceiptModal({
             className="min-h-12 bg-green-600 px-4 text-base text-white hover:bg-green-700 touch-manipulation"
           >
             <Printer className="mr-2 h-5 w-5" aria-hidden />
-            {c.print}
+            {isPaidReceipt ? "Хэвлэх" : c.print}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="min-h-12 px-4 text-base touch-manipulation"
-          >
-            {c.close}
-          </Button>
-          {onCloseTable && (
+          {isPaidReceipt && onCloseTable ? (
+            <Button
+              type="button"
+              disabled={closingTable}
+              onClick={handleCloseTable}
+              className={cn(
+                "min-h-12 rounded-xl bg-red-600 px-5 text-base font-bold text-white shadow-md",
+                "hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 touch-manipulation print:hidden"
+              )}
+            >
+              {closingTable ? c.loading : closeTableLabel}
+            </Button>
+          ) : null}
+          {isPaidReceipt && onFinish ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onFinish}
+              className="min-h-12 px-4 text-base touch-manipulation print:hidden"
+            >
+              {finishLabel}
+            </Button>
+          ) : null}
+          {!isPaidReceipt ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="min-h-12 px-4 text-base touch-manipulation"
+            >
+              {c.close}
+            </Button>
+          ) : null}
+          {!isPaidReceipt && onCloseTable && (
             <Button
               type="button"
               disabled={closingTable}
@@ -122,12 +162,26 @@ function BillReceiptModal({
             </p>
             <p className="receipt-row">
               <span>{c.date}</span>
-              <span>{formatReceiptDate(order.createdAt)}</span>
+              <span>{formatReceiptDate(receiptDate)}</span>
             </p>
-            <p className="receipt-row">
-              <span>{c.status}</span>
-              <span>{labelOrderStatus(order.status, locale)}</span>
-            </p>
+            {payment?.guestCount ? (
+              <p className="receipt-row">
+                <span>Зочдын тоо</span>
+                <span>{payment.guestCount}</span>
+              </p>
+            ) : null}
+            {!isPaidReceipt ? (
+              <p className="receipt-row">
+                <span>{c.status}</span>
+                <span>{labelOrderStatus(order.status, locale)}</span>
+              </p>
+            ) : null}
+            {payment?.vatType ? (
+              <p className="receipt-row">
+                <span>Баримтын төрөл</span>
+                <span>{payment.vatType}</span>
+              </p>
+            ) : null}
 
             <div className="receipt-divider" />
             <p className="receipt-items-head">{c.items}</p>
@@ -150,10 +204,55 @@ function BillReceiptModal({
             </ul>
 
             <div className="receipt-divider" />
-            <p className="receipt-total">
-              <span>{c.total}</span>
-              <span>{formatPrice(receiptTotal)}</span>
-            </p>
+            {payment ? (
+              <>
+                <p className="receipt-row">
+                  <span>Дэд дүн</span>
+                  <span>{formatPrice(payment.subtotal)}</span>
+                </p>
+                {payment.discountAmount > 0 ? (
+                  <p className="receipt-row">
+                    <span>Хөнгөлөлт</span>
+                    <span>-{formatPrice(payment.discountAmount)}</span>
+                  </p>
+                ) : null}
+                {payment.vatType !== "НӨАТ-гүй" && payment.vatAmount > 0 ? (
+                  <p className="receipt-row">
+                    <span>НӨАТ</span>
+                    <span>{formatPrice(payment.vatAmount)}</span>
+                  </p>
+                ) : null}
+                <p className="receipt-total">
+                  <span>Төлсөн дүн</span>
+                  <span>{formatPrice(payment.paidAmount)}</span>
+                </p>
+                {payment.changeAmount > 0 ? (
+                  <p className="receipt-row">
+                    <span>Хариулт</span>
+                    <span>{formatPrice(payment.changeAmount)}</span>
+                  </p>
+                ) : null}
+                <p className="receipt-row">
+                  <span>Төлбөрийн хэлбэр</span>
+                  <span>{payment.paymentMethod}</span>
+                </p>
+              </>
+            ) : (
+              <p className="receipt-total">
+                <span>{c.total}</span>
+                <span>{formatPrice(receiptTotal)}</span>
+              </p>
+            )}
+
+            {(showQrPlaceholder || payment?.paymentMethod === "QPay") && (
+              <>
+                <div className="receipt-divider" />
+                <div className="mx-auto my-2 flex h-24 w-24 items-center justify-center rounded border border-dashed border-slate-400 text-[9px] text-slate-500">
+                  QR
+                </div>
+                <p className="receipt-footer">eBarimt / QPay — удахгүй</p>
+              </>
+            )}
 
             <div className="receipt-divider" />
             <p className="receipt-footer">{c.thankYou}</p>

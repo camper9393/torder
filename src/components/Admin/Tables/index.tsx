@@ -388,7 +388,7 @@ function AdminTablesPage() {
     setDetail(null)
   }
 
-  const handleCloseTable = async () => {
+  const handleCloseTable = async (opts?: { paymentMethod?: string }) => {
     if (!selectedTable) return
 
     setClosing(true)
@@ -400,6 +400,7 @@ function AdminTablesPage() {
       values: {
         tableName: selectedTable,
         ...(orderMerchantId ? { merchantId: orderMerchantId } : {}),
+        ...(opts?.paymentMethod ? { paymentMethod: opts.paymentMethod } : {}),
       },
     })
 

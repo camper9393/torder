@@ -16,6 +16,7 @@ import {
   POST_AUTH_CHANGE_PASSWORD,
 } from "@/utils/APIConstant";
 import { getApi, patchApi, postApi } from "@/utils/common";
+import PasscodeManager from "@/components/Auth/PasscodeManager";
 import { CheckCircle2, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import React from "react";
 
@@ -412,6 +413,8 @@ export default function AdminProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <PasscodeManager />
 
       <Card className="border-amber-200 bg-amber-50/50">
         <CardHeader>

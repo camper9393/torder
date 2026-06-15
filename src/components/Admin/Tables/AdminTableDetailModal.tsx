@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/dialog"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
 import { TableDetail } from "@/types/table"
 
@@ -42,11 +41,12 @@ import {
   computeLineItemSubtotal,
   computeOrderTotal,
   computeOrdersTotalWithStoredFallback,
+  flattenOrdersToLineItems,
   resolveLineItemQuantity,
 } from "@/utils/orderTotals"
 
 import { useLocale } from "@/context/LocaleContext"
-import { resolveOrderItemDisplay } from "@/utils/menuBilingual"
+import { formatOrderItemLine, resolveOrderItemDisplay } from "@/utils/menuBilingual"
 
 import { cn } from "@/lib/utils"
 
@@ -55,6 +55,10 @@ import { Plus, Pencil } from "lucide-react"
 import toast from "react-hot-toast"
 
 import BillReceiptModal from "@/components/Kitchen/BillReceiptModal"
+
+import TablePaymentModal from "./TablePaymentModal"
+
+import type { TablePaymentReceiptData } from "@/utils/tablePayment"
 
 import AdminTableMenuPicker, {
   type AdminTablePickerCartLine,
@@ -78,7 +82,7 @@ type AdminTableDetailModalProps = {
 
   onClose: () => void
 
-  onCloseTable: () => void
+  onCloseTable: (opts?: { paymentMethod?: string }) => void | Promise<void>
 
   onOrdersChanged: () => void
 
@@ -108,19 +112,6 @@ function areAllOrderItemsServed(tableOrders: KitchenOrder[]): boolean {
   const items = tableOrders.flatMap((order) => order.items)
   return items.length > 0 && items.every((item) => item.served === true)
 }
-
-const DISCOUNT_PRESET_PERCENTS = [5, 10, 20, 30] as const
-
-function parseDiscountPercentInput(raw: string): number | null {
-  const trimmed = raw.trim()
-  if (!trimmed) return null
-  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null
-  const value = Number(trimmed)
-  if (!Number.isFinite(value) || value < 0 || value > 100) return null
-  return value
-}
-
-
 
 function cloneOrders(source: KitchenOrder[]): KitchenOrder[] {
 
@@ -174,19 +165,17 @@ function AdminTableDetailModal({
 
   const [printOrder, setPrintOrder] = React.useState<KitchenOrder | null>(null)
 
+  const [paymentOpen, setPaymentOpen] = React.useState(false)
+
+  const [paymentReceipt, setPaymentReceipt] =
+    React.useState<TablePaymentReceiptData | null>(null)
+
   const [saving, setSaving] = React.useState(false)
 
 
   const [markingServedKey, setMarkingServedKey] = React.useState<string | null>(
     null
   )
-
-  const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false)
-  const [discountInput, setDiscountInput] = React.useState("")
-  const [discountError, setDiscountError] = React.useState<string | null>(null)
-  const [appliedDiscountPercent, setAppliedDiscountPercent] = React.useState<
-    number | null
-  >(null)
 
   const menuEditModeRef = React.useRef(false)
 
@@ -202,6 +191,10 @@ function AdminTableDetailModal({
 
       setPrintOrder(null)
 
+      setPaymentOpen(false)
+
+      setPaymentReceipt(null)
+
       setPickerOpen(false)
 
       setPickerOrderId(null)
@@ -211,14 +204,6 @@ function AdminTableDetailModal({
       setDraftOrders([])
 
       detailTableNameRef.current = null
-
-      setDiscountDialogOpen(false)
-
-      setDiscountInput("")
-
-      setDiscountError(null)
-
-      setAppliedDiscountPercent(null)
 
     }
 
@@ -252,13 +237,7 @@ function AdminTableDetailModal({
 
       setOrders(detail.orders)
 
-      setAppliedDiscountPercent(null)
-
-      setDiscountDialogOpen(false)
-
-      setDiscountInput("")
-
-      setDiscountError(null)
+      setPaymentReceipt(null)
 
       return
 
@@ -324,6 +303,17 @@ function AdminTableDetailModal({
 
 
 
+  const paymentOrderLines = React.useMemo(() => {
+    const display = menuEditMode ? draftOrders : orders
+    return flattenOrdersToLineItems(display).map((item, index) => ({
+      key: `payment-line-${index}`,
+      label: formatOrderItemLine(item, locale, resolveLineItemQuantity(item)),
+      amount: computeLineItemSubtotal(item),
+    }))
+  }, [menuEditMode, draftOrders, orders, locale])
+
+
+
   if (!detail) return null
 
 
@@ -365,42 +355,7 @@ function AdminTableDetailModal({
 
   const originalTotal = liveTotal
 
-  const discountPercent =
-    appliedDiscountPercent != null && appliedDiscountPercent > 0
-      ? appliedDiscountPercent
-      : null
-
-  const discountAmount =
-    discountPercent != null
-      ? Math.round((originalTotal * discountPercent) / 100)
-      : 0
-
-  const finalTotal = originalTotal - discountAmount
-
-  const canPrint = orders.length > 0
-
-  const openDiscountDialog = () => {
-    setDiscountInput(
-      appliedDiscountPercent != null ? String(appliedDiscountPercent) : ""
-    )
-    setDiscountError(null)
-    setDiscountDialogOpen(true)
-  }
-
-  const handleApplyDiscount = () => {
-    const parsed = parseDiscountPercentInput(discountInput)
-    if (parsed === null) {
-      setDiscountError(
-        !discountInput.trim()
-          ? "Хувь оруулна уу"
-          : "0–100 хооронд зөв тоо оруулна уу"
-      )
-      return
-    }
-    setAppliedDiscountPercent(parsed === 0 ? null : parsed)
-    setDiscountDialogOpen(false)
-    setDiscountError(null)
-  }
+  const canPay = orders.length > 0
 
   const editableOrders = orders.filter((o) => isEditableStatus(o.status))
 
@@ -928,9 +883,29 @@ function AdminTableDetailModal({
 
 
 
-  const handlePrintBill = () => {
-    const bill = buildCombinedTableBill(displayOrders, detail.tableName)
+  const handleOpenPayment = () => {
+    if (!canPay) return
+    setPaymentOpen(true)
+  }
+
+  const handlePaymentSuccess = (receipt: TablePaymentReceiptData) => {
+    setPaymentOpen(false)
+    setPaymentReceipt(receipt)
+    const bill = buildCombinedTableBill(orders, detail.tableName)
     if (bill) setPrintOrder(bill)
+    onOrdersChanged()
+  }
+
+  const handlePrintDraft = () => {
+    const bill = buildCombinedTableBill(displayOrders, detail.tableName)
+    if (!bill) return
+    setPaymentReceipt(null)
+    setPrintOrder(bill)
+  }
+
+  const handleFinishReceipt = () => {
+    setPrintOrder(null)
+    setPaymentReceipt(null)
   }
 
 
@@ -939,30 +914,43 @@ function AdminTableDetailModal({
 
     <>
 
+      <TablePaymentModal
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        tableName={detail.tableName}
+        tableLabel={tableLabel}
+        subtotal={originalTotal}
+        orderLines={paymentOrderLines}
+        merchantId={merchantId ? String(merchantId) : undefined}
+        onPaid={handlePaymentSuccess}
+        onPrintDraft={handlePrintDraft}
+      />
+
       <BillReceiptModal
-
         open={printOrder !== null}
-
-        onClose={() => setPrintOrder(null)}
-
-        order={printOrder}
-
-        restaurantName={restaurantName}
-
-        closeTableLabel={at.closeTable}
-
-        confirmCloseTable={at.confirmCloseTable}
-
-        closingTable={closing}
-
-        onCloseTable={async () => {
-
+        onClose={() => {
           setPrintOrder(null)
-
-          await onCloseTable()
-
+          setPaymentReceipt(null)
         }}
-
+        order={printOrder}
+        restaurantName={restaurantName}
+        payment={paymentReceipt}
+        showQrPlaceholder={paymentReceipt?.paymentMethod === "QPay"}
+        closeTableLabel={at.closeTable}
+        confirmCloseTable={at.confirmCloseTable}
+        closingTable={closing}
+        onFinish={paymentReceipt ? handleFinishReceipt : undefined}
+        onCloseTable={
+          paymentReceipt
+            ? async () => {
+                setPrintOrder(null)
+                setPaymentReceipt(null)
+                await onCloseTable({
+                  paymentMethod: paymentReceipt.paymentMethod,
+                })
+              }
+            : undefined
+        }
       />
 
 
@@ -978,92 +966,6 @@ function AdminTableDetailModal({
         onConfirm={handlePickerConfirm}
 
       />
-
-      <Dialog
-        open={discountDialogOpen}
-        onOpenChange={(v) => {
-          setDiscountDialogOpen(v)
-          if (!v) setDiscountError(null)
-        }}
-      >
-        <DialogContent
-          showCloseButton={false}
-          className="z-[60] max-w-sm gap-0 overflow-hidden rounded-xl p-0 sm:max-w-sm"
-        >
-          <div className="border-b border-slate-100 px-4 py-3">
-            <DialogTitle className="text-base font-bold text-slate-900">
-              Хөнгөлөлт
-            </DialogTitle>
-          </div>
-          <div className="space-y-2 px-4 py-3">
-            <div className="grid grid-cols-4 gap-1.5">
-              {DISCOUNT_PRESET_PERCENTS.map((preset) => {
-                const parsedInput = parseDiscountPercentInput(discountInput)
-                const isActive = parsedInput === preset
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => {
-                      setDiscountInput(String(preset))
-                      if (discountError) setDiscountError(null)
-                    }}
-                    className={cn(
-                      "h-8 rounded-md border text-xs font-semibold transition touch-manipulation",
-                      isActive
-                        ? "border-[#1E5EFF] bg-[#1E5EFF] text-white"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-[#1E5EFF]/40 hover:bg-[#1E5EFF]/5"
-                    )}
-                  >
-                    {preset}%
-                  </button>
-                )
-              })}
-            </div>
-            <label
-              htmlFor="table-discount-percent"
-              className="text-sm font-medium text-slate-700"
-            >
-              Хөнгөлөлтийн хувь
-            </label>
-            <Input
-              id="table-discount-percent"
-              type="text"
-              inputMode="decimal"
-              placeholder="Жишээ: 5"
-              value={discountInput}
-              onChange={(e) => {
-                setDiscountInput(e.target.value)
-                if (discountError) setDiscountError(null)
-              }}
-              className="h-10"
-            />
-            {discountError ? (
-              <p className="text-xs text-red-600">{discountError}</p>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-lg"
-              onClick={() => {
-                setDiscountDialogOpen(false)
-                setDiscountError(null)
-              }}
-            >
-              Цуцлах
-            </Button>
-            <Button
-              type="button"
-              className="h-10 rounded-lg bg-[#1E5EFF] font-semibold text-white hover:bg-[#1548D4]"
-              onClick={handleApplyDiscount}
-            >
-              Хэрэглэх
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
 
@@ -1288,30 +1190,6 @@ function AdminTableDetailModal({
 
               </p>
 
-              {discountPercent != null ? (
-                <p className="flex flex-wrap items-baseline justify-between gap-x-2 text-sm text-slate-600">
-
-                  <span>Хөнгөлөлт: {discountPercent}%</span>
-
-                  <span className="font-semibold text-red-600 tabular-nums">
-                    (-{formatPrice(discountAmount)})
-                  </span>
-
-                </p>
-              ) : null}
-
-              {discountPercent != null ? (
-                <p className="flex justify-between text-lg font-bold text-slate-900">
-
-                  <span>Төлөх дүн:</span>
-
-                  <span className="text-[#1E5EFF]">
-                    {formatPrice(finalTotal)}
-                  </span>
-
-                </p>
-              ) : null}
-
             </div>
 
             <p className="flex flex-wrap items-center gap-2">
@@ -1394,85 +1272,41 @@ function AdminTableDetailModal({
 
               {!menuEditMode && (
 
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <Button
 
-                    <Button
+                    type="button"
 
-                      type="button"
+                    disabled={!canPay || saving}
 
-                      variant="outline"
+                    onClick={handleOpenPayment}
 
-                      disabled={saving}
+                    className="min-h-[52px] h-auto rounded-xl py-3.5 text-lg bg-[#1E5EFF] font-semibold text-white hover:bg-[#1548D4] disabled:opacity-40 touch-manipulation"
 
-                      onClick={openDiscountDialog}
+                  >
 
-                      className="h-9 rounded-lg border-slate-200 bg-white px-2 text-sm font-medium text-slate-700 hover:bg-slate-50 touch-manipulation"
+                    Төлбөр төлөх
 
-                    >
+                  </Button>
 
-                      Хөнгөлөлт
+                  <Button
 
-                    </Button>
+                    type="button"
 
-                    <Button
+                    variant="destructive"
 
-                      type="button"
+                    disabled={saving}
 
-                      variant="outline"
+                    onClick={onClose}
 
-                      disabled={saving}
+                    className="min-h-[52px] h-auto rounded-xl py-3.5 text-lg font-semibold touch-manipulation"
 
-                      onClick={() => console.log("[table-detail] promotion placeholder")}
+                  >
 
-                      className="h-9 rounded-lg border-slate-200 bg-white px-2 text-sm font-medium text-slate-700 hover:bg-slate-50 touch-manipulation"
+                    Буцах
 
-                    >
-
-                      Урамшуулал
-
-                    </Button>
-
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-
-                    <Button
-
-                      type="button"
-
-                      disabled={!canPrint || saving}
-
-                      onClick={handlePrintBill}
-
-                      className="min-h-[52px] h-auto rounded-xl py-3.5 text-lg bg-[#1E5EFF] font-semibold text-white hover:bg-[#1548D4] disabled:opacity-40 touch-manipulation"
-
-                    >
-
-                      {at.printBill}
-
-                    </Button>
-
-                    <Button
-
-                      type="button"
-
-                      variant="destructive"
-
-                      disabled={saving}
-
-                      onClick={onClose}
-
-                      className="min-h-[52px] h-auto rounded-xl py-3.5 text-lg font-semibold touch-manipulation"
-
-                    >
-
-                      Буцах
-
-                    </Button>
-
-                  </div>
+                  </Button>
 
                 </div>
 

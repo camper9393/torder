@@ -13,6 +13,9 @@ export interface IUser {
   restaurantId?: mongoose.Types.ObjectId;
   permissions: string[];
   isActive: boolean;
+  passcodeHash?: string;
+  passcodeEnabled?: boolean;
+  passcodeUpdatedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +41,9 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     permissions: { type: [String], default: [] },
     isActive: { type: Boolean, default: true },
+    passcodeHash: { type: String, select: false },
+    passcodeEnabled: { type: Boolean, default: false },
+    passcodeUpdatedAt: { type: Date },
   },
   { timestamps: true }
 );

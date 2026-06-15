@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { Merchants } from "@/model/merchants"
 import mongoServer from "@/config/mongoConfig"
 import { verifyToken } from "@/utils/jwt"
-import { getCurrentUser } from "@/lib/auth"
+import { getCurrentUser, MERCHANT_TOKEN_COOKIE } from "@/lib/auth";
 import {
   isPlatformOwner,
   resolveDefaultLegacyRestaurantId,
@@ -12,9 +12,9 @@ import { Types } from "mongoose"
 
 export async function GET(req: NextRequest) {
   try {
-    await mongoServer()
+    await mongoServer();
 
-    const token = req.cookies.get("token")?.value
+    const token = req.cookies.get(MERCHANT_TOKEN_COOKIE)?.value
     if (token) {
       const merchantId = verifyToken(token)
       if (merchantId) {

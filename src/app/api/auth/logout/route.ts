@@ -1,10 +1,11 @@
-import { USER_TOKEN_COOKIE } from "@/lib/auth";
+import { USER_TOKEN_COOKIE, MERCHANT_TOKEN_COOKIE } from "@/lib/auth";
+import { clearPlatformSupportContext } from "@/lib/platformSupportServer";
 import { NextResponse } from "next/server";
 
 export async function POST() {
   const response = NextResponse.json({ success: true });
 
-  response.cookies.set("token", "", {
+  response.cookies.set(MERCHANT_TOKEN_COOKIE, "", {
     httpOnly: true,
     expires: new Date(0),
     path: "/",
@@ -15,6 +16,8 @@ export async function POST() {
     expires: new Date(0),
     path: "/",
   });
+
+  clearPlatformSupportContext(response);
 
   return response;
 }

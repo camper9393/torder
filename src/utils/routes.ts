@@ -34,9 +34,16 @@ export function usesMerchantSidebar(pathname: string | null): boolean {
   return false
 }
 
+/** Login screen — no site header chrome */
+export function isLoginRoute(pathname: string | null): boolean {
+  if (!pathname) return false
+  return pathname === "/login"
+}
+
 export function hidesSiteNavBar(pathname: string | null): boolean {
   return (
     isPublicLandingRoute(pathname) ||
+    isLoginRoute(pathname) ||
     isConsumerTabletRoute(pathname) ||
     isKitchenTvRoute(pathname) ||
     usesMerchantSidebar(pathname) ||

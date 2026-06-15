@@ -22,6 +22,11 @@ export type KitchenOrder = {
   status: OrderStatus
   paymentMethod?: string
   paidAmount?: number
+  vatType?: string
+  guestCount?: number
+  discountAmount?: number
+  changeAmount?: number
+  paidAt?: string
   refundStatus?: RefundStatus
   refundedAmount?: number
   refundedItems?: RefundedLineItem[]

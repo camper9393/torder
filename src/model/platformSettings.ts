@@ -16,10 +16,10 @@ export interface IPlatformSettings {
 
 const platformSettingsSchema = new mongoose.Schema<IPlatformSettings>(
   {
-    platformName: { type: String, default: "TOrderPro", trim: true },
+    platformName: { type: String, default: "TOrder", trim: true },
     supportEmail: {
       type: String,
-      default: "support@torderpro.local",
+      default: "support@torder.local",
       trim: true,
       lowercase: true,
     },

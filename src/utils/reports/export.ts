@@ -42,7 +42,7 @@ export function printReportArea(elementId: string) {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>TOrderPro тайлан</title>
+        <title>TOrder тайлан</title>
         <style>
           body { font-family: system-ui, sans-serif; padding: 24px; color: #111; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }

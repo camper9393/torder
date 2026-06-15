@@ -1,4 +1,4 @@
-import { USER_TOKEN_COOKIE } from "@/lib/auth";
+import { applyUserLoginCookies } from "@/lib/auth";
 import { ensureInitialPlatformOwner, loginUser } from "@/service/userAuth";
 import { NextRequest, NextResponse } from "next/server";
 import mongoServer from "@/config/mongoConfig";
@@ -48,12 +48,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
 
-    res.cookies.set(USER_TOKEN_COOKIE, result.token, {
-      httpOnly: true,
-      sameSite: "strict",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
+    await applyUserLoginCookies(res, result.token, result.user);
 
     return res;
   } catch (error) {

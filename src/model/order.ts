@@ -42,6 +42,11 @@ export interface IOrder {
   status: OrderStatus;
   paymentMethod?: string;
   paidAmount?: number;
+  vatType?: string;
+  guestCount?: number;
+  discountAmount?: number;
+  changeAmount?: number;
+  paidAt?: Date;
   refundStatus?: RefundStatus;
   refundedAmount?: number;
   refundedItems?: IRefundedLineItem[];
@@ -92,6 +97,11 @@ const orderSchema = new mongoose.Schema<IOrder>(
     },
     paymentMethod: { type: String, trim: true },
     paidAmount: { type: Number, min: 0 },
+    vatType: { type: String, trim: true },
+    guestCount: { type: Number, min: 1 },
+    discountAmount: { type: Number, min: 0, default: 0 },
+    changeAmount: { type: Number, min: 0, default: 0 },
+    paidAt: { type: Date },
     refundStatus: {
       type: String,
       enum: ["none", "partial", "full"],

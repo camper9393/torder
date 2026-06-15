@@ -9,6 +9,7 @@ import {
 } from "@/components/Platform/shared";
 import { GET_PLATFORM_ERRORS, PATCH_PLATFORM_ERROR } from "@/utils/APIConstant";
 import { getApi, patchApi } from "@/utils/common";
+import { useMarkNotificationsReadOnPage } from "@/hooks/useNotificationCounts";
 import React from "react";
 
 type Err = {
@@ -22,6 +23,8 @@ type Err = {
 };
 
 export default function PlatformErrorsPage() {
+  useMarkNotificationsReadOnPage("errors");
+
   const [items, setItems] = React.useState<Err[]>([]);
   const [loading, setLoading] = React.useState(true);
 

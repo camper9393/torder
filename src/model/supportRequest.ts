@@ -1,28 +1,11 @@
+import {
+  SupportPriority,
+  SupportStatus,
+  SupportType,
+} from "@/constants/support";
 import mongoose from "mongoose";
 
-export enum SupportType {
-  QUESTION = "question",
-  PAYMENT = "payment",
-  TECHNICAL = "technical",
-  BUG = "bug",
-  FEATURE = "feature",
-  OTHER = "other",
-}
-
-export enum SupportPriority {
-  LOW = "low",
-  MEDIUM = "medium",
-  HIGH = "high",
-  URGENT = "urgent",
-}
-
-export enum SupportStatus {
-  NEW = "new",
-  IN_PROGRESS = "inProgress",
-  WAITING = "waiting",
-  RESOLVED = "resolved",
-  CLOSED = "closed",
-}
+export { SupportPriority, SupportStatus, SupportType } from "@/constants/support";
 
 export interface ISupportRequest {
   _id: mongoose.Types.ObjectId;
@@ -35,6 +18,7 @@ export interface ISupportRequest {
   createdBy?: mongoose.Types.ObjectId;
   assignedTo?: mongoose.Types.ObjectId;
   adminNote?: string;
+  imageUrls?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -70,6 +54,7 @@ const supportRequestSchema = new mongoose.Schema<ISupportRequest>(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "users" },
     adminNote: { type: String, default: "", trim: true },
+    imageUrls: { type: [String], default: [] },
   },
   { timestamps: true }
 );

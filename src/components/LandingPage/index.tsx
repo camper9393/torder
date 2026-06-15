@@ -78,30 +78,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <header className="border-b border-slate-100">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white">
-              TP
-            </div>
-            <div>
-              <p className="text-lg font-bold tracking-tight">TOrderPro</p>
-              <p className="text-xs text-slate-500">QRMenu Platform</p>
-            </div>
-          </div>
-          <Button asChild variant="outline" size="sm">
-            <Link href="/login">Нэвтрэх</Link>
-          </Button>
-        </div>
-      </header>
-
       <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:py-20">
         <section className="mx-auto max-w-3xl text-center">
           <p className="mb-4 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
             Рестораны удирдлагын систем
           </p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
-            TOrderPro Platform
+            TOrder Platform
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
             Ресторан, кафе, хоолны газрын захиалга, ширээ, гал тогоо, ажилтан,
@@ -164,7 +147,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-slate-100 py-6">
         <p className="text-center text-xs text-slate-400">
-          © {new Date().getFullYear()} TOrderPro · QRMenu
+          © {new Date().getFullYear()} TOrder · QRMenu
         </p>
       </footer>
     </div>
