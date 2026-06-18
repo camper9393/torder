@@ -24,7 +24,7 @@ import { NextRequest } from "next/server";
 import { resolveRestaurantIdForMerchant } from "@/lib/tenant";
 
 const ACTIVE_ORDER_SELECT =
-  "tableName status total createdAt items.title items.nameMn items.nameEn items.selectedSizeLabelMn items.selectedSizeLabelEn items.menuItemId items.price items.quantity items.served items.image";
+  "tableName status total createdAt restaurantId orderNo items.title items.nameMn items.nameEn items.selectedSizeLabelMn items.selectedSizeLabelEn items.menuItemId items.price items.quantity items.served items.image";
 
 /** Merchant token, platform owner legacy scope, or ?merchantId= query. */
 async function resolveTablesMerchantId(
@@ -46,6 +46,8 @@ function sumItemCount(
 function serializeOrder(doc: {
   _id: unknown;
   merchantId?: unknown;
+  restaurantId?: unknown;
+  orderNo?: string;
   tableName: string;
   items: unknown[];
   total: number;
@@ -56,6 +58,8 @@ function serializeOrder(doc: {
   return {
     _id: String(doc._id),
     merchantId: doc.merchantId ? String(doc.merchantId) : undefined,
+    restaurantId: doc.restaurantId ? String(doc.restaurantId) : undefined,
+    orderNo: doc.orderNo?.trim() || undefined,
     tableName: doc.tableName,
     items: (doc.items as { served?: boolean }[]).map((item) => ({
       ...(item as Record<string, unknown>),
@@ -390,6 +394,7 @@ export async function GET(req: NextRequest) {
         message: "Table detail fetched",
         data: {
           tableName,
+          restaurantId: restaurantId ? String(restaurantId) : undefined,
           status: deriveTableDisplayStatus(statuses),
           activeOrderCount: activeOrders.length,
           itemCount: sumItemCount(activeOrders),

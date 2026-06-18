@@ -40,6 +40,7 @@ export type TableSummary = {
 
 export type TableDetail = {
   tableName: string
+  restaurantId?: string
   status: TableDisplayStatus
   activeOrderCount: number
   itemCount: number

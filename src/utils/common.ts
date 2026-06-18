@@ -64,10 +64,19 @@ export const getApi = async <T>({
 
 export const postApi = async <T>({
     url,
-    values
+    values,
+    param,
 }: ApiRequest): Promise<T | undefined> => {
     try {
-        const response = await defaultAxios.post<T>(url,values)
+        let apiUrl = url;
+        if (param) {
+            const queryString = new URLSearchParams();
+            Object.entries(param).forEach(([key, value]) => {
+                queryString.append(key, String(value));
+            });
+            apiUrl += `?${queryString.toString()}`;
+        }
+        const response = await defaultAxios.post<T>(apiUrl,values)
         return response.data
     } catch (err) {
         return handleApiError<T>(err)
@@ -90,14 +99,23 @@ export const putApi = async <T>({
 
 export const patchApi = async <T>({
     url,
-    values
+    values,
+    param,
 }: ApiRequest): Promise<T | undefined> => {
     try {
+        let apiUrl = url;
+        if (param) {
+            const queryString = new URLSearchParams();
+            Object.entries(param).forEach(([key, value]) => {
+                queryString.append(key, String(value));
+            });
+            apiUrl += `?${queryString.toString()}`;
+        }
         const config =
             values instanceof FormData
                 ? {}
                 : { headers: { "Content-Type": "application/json" } }
-        const response = await defaultAxios.patch<T>(url, values, config)
+        const response = await defaultAxios.patch<T>(apiUrl, values, config)
         return response.data
     } catch (err) {
         return handleApiError<T>(err)

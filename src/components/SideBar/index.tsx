@@ -22,7 +22,6 @@ import {
   Users,
   CircleHelp,
   Settings,
-  User,
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -89,25 +88,14 @@ const UTILITY_NAV_ITEMS: NavItem[] = [
     isActive: (p) => matchPath(p, "/admin/help"),
   },
   {
-    navKey: "staff",
-    title: "Ажилтан",
-    url: "/admin/staff",
-    icon: Users,
-    isActive: (p) => matchPath(p, "/admin/staff"),
-  },
-  {
     navKey: "settings",
     title: "Тохиргоо",
     url: "/admin/settings",
     icon: Settings,
-    isActive: (p) => matchPath(p, "/admin/settings"),
-  },
-  {
-    navKey: "profile",
-    title: "Хэрэглэгч",
-    url: "/admin/profile",
-    icon: User,
-    isActive: (p) => matchPath(p, "/admin/profile"),
+    isActive: (p) =>
+      matchPath(p, "/admin/settings") ||
+      matchPath(p, "/admin/staff") ||
+      matchPath(p, "/admin/profile"),
   },
 ]
 

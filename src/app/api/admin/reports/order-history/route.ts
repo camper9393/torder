@@ -88,6 +88,10 @@ export async function GET(req: NextRequest) {
           _id: new Types.ObjectId(search),
         });
       }
+      (query.$or as Record<string, unknown>[]).push({ orderNo: regex });
+      if (/^\d{12}$/.test(search)) {
+        (query.$or as Record<string, unknown>[]).push({ orderNo: search });
+      }
     }
 
     const [total, orders, tablesAgg] = await Promise.all([
@@ -114,7 +118,10 @@ export async function GET(req: NextRequest) {
         data: {
           detail: {
             ...serialized,
-            orderNumber: formatOrderNumber(serialized._id),
+            orderNumber: formatOrderNumber({
+              _id: serialized._id,
+              orderNo: serialized.orderNo,
+            }),
             itemsCount: serialized.items.reduce(
               (sum, item) => sum + item.quantity,
               0
@@ -130,22 +137,36 @@ export async function GET(req: NextRequest) {
     const rows = orders.map((doc) => {
       const paid = doc.paidAmount ?? doc.total;
       const refunded = doc.refundedAmount ?? 0;
-      const updated = new Date(doc.updatedAt);
+      const closed = doc.paidAt ? new Date(doc.paidAt) : new Date(doc.updatedAt);
       return {
         _id: String(doc._id),
-        orderNumber: formatOrderNumber(String(doc._id)),
+        orderNumber: formatOrderNumber({
+          _id: String(doc._id),
+          orderNo: typeof doc.orderNo === "string" ? doc.orderNo : undefined,
+        }),
         tableName: doc.tableName,
-        date: updated.toISOString().slice(0, 10),
-        time: updated.toLocaleTimeString("mn-MN", {
+        date: closed.toISOString().slice(0, 10),
+        time: closed.toLocaleTimeString("mn-MN", {
           hour: "2-digit",
           minute: "2-digit",
         }),
+        createdAt:
+          doc.createdAt instanceof Date
+            ? doc.createdAt.toISOString()
+            : new Date(doc.createdAt).toISOString(),
+        closedAt: closed.toISOString(),
         itemsCount: doc.items.reduce(
           (sum: number, item: { quantity: number }) => sum + item.quantity,
           0
         ),
+        grossTotal: doc.total,
         total: paid,
+        discountAmount: doc.discountAmount ?? 0,
+        paidAmount: paid,
         netTotal: paid - refunded,
+        paymentMethod:
+          typeof doc.paymentMethod === "string" ? doc.paymentMethod : undefined,
+        vatType: typeof doc.vatType === "string" ? doc.vatType : undefined,
         status: doc.status,
         refundStatus: doc.refundStatus ?? "none",
       };

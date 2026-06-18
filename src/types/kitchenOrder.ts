@@ -4,6 +4,8 @@ import type { RefundedLineItem } from "@/types/refund"
 export type KitchenOrder = {
   _id: string
   merchantId?: string
+  restaurantId?: string
+  orderNo?: string
   tableName: string
   items: {
     menuItemId?: string

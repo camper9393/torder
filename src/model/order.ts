@@ -35,6 +35,8 @@ export interface IOrder {
   _id: mongoose.Types.ObjectId;
   merchantId: mongoose.Types.ObjectId;
   restaurantId?: mongoose.Types.ObjectId;
+  /** YYMMDDHHmm + 2 оронт sequence (жишээ: 260617064201) */
+  orderNo?: string;
   userId?: mongoose.Types.ObjectId;
   tableName: string;
   items: IOrderItem[];
@@ -82,6 +84,11 @@ const orderSchema = new mongoose.Schema<IOrder>(
       ref: "restaurants",
       index: true,
     },
+    orderNo: {
+      type: String,
+      trim: true,
+      index: true,
+    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "merchants",
@@ -124,11 +131,26 @@ const orderSchema = new mongoose.Schema<IOrder>(
   { timestamps: true }
 );
 
-if (mongoose.models.orders) {
-  const schema = mongoose.models.orders.schema;
-  if (!schema.path("restaurantId")) {
-    mongoose.deleteModel("orders");
+orderSchema.index(
+  { merchantId: 1, orderNo: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      orderNo: { $type: "string" },
+    },
   }
+);
+
+/** Next.js hot reload: хуучин schema cache orderNo-г strict mode-оор устгана */
+function staleOrdersModel(): boolean {
+  const existing = mongoose.models.orders;
+  if (!existing) return false;
+  const schema = existing.schema;
+  return !schema.path("restaurantId") || !schema.path("orderNo");
+}
+
+if (staleOrdersModel()) {
+  mongoose.deleteModel("orders");
 }
 
 export const Order =

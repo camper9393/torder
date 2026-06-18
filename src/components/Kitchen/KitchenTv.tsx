@@ -12,6 +12,7 @@ import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 import { formatPrice } from "@/utils/currency"
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine } from "@/utils/menuBilingual"
+import { formatOrderNumber } from "@/utils/serializeKitchenOrder"
 import LanguageSwitcher from "@/components/common/LanguageSwitcher"
 import FullscreenButton from "@/components/MenuInterface/FullscreenButton"
 import { cn } from "@/lib/utils"
@@ -213,6 +214,9 @@ function KitchenTv() {
                     </span>
                   </div>
 
+                  <p className="mb-1 text-lg text-slate-300 sm:text-xl">
+                    #{formatOrderNumber(order)}
+                  </p>
                   <p className="mb-4 text-lg text-slate-300 sm:text-xl">
                     {tv.orderTime}:{" "}
                     <span className="font-semibold text-white">

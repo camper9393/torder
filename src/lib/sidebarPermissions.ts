@@ -34,7 +34,6 @@ export const POS_CONTEXT_NAV_KEYS = new Set<SidebarNavKey>([
   "tablet-order",
   "kitchen",
   "reports",
-  "staff",
 ]);
 /** Sidebar цэс → Permission (null = бүх нэвтэрсэн хэрэглэгчид) */
 export const SIDEBAR_NAV_PERMISSIONS: Record<
@@ -51,7 +50,7 @@ export const SIDEBAR_NAV_PERMISSIONS: Record<
   reports: Permission.REPORTS,
   help: null,
   staff: Permission.STAFF,
-  settings: Permission.SETTINGS,
+  settings: null,
   profile: null,
 };
 

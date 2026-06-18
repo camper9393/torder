@@ -92,32 +92,59 @@
     display: none;
 }
 
-/* Kitchen bill — thermal ~80mm */
+/* Kitchen bill — thermal receipt (settings-driven) */
 .kitchen-bill-receipt {
   margin: 0 auto;
-  max-width: 80mm;
   background: #fff;
   color: #000;
   font-family: ui-monospace, "Courier New", monospace;
-  font-size: 12px;
-  line-height: 1.4;
+}
+
+.kitchen-bill-receipt.receipt-size-80mm {
+  max-width: 80mm;
+}
+
+.kitchen-bill-receipt.receipt-size-58mm {
+  max-width: 58mm;
 }
 
 .kitchen-bill-receipt .receipt-inner {
   padding: 8px 4px;
 }
 
+.kitchen-bill-receipt .receipt-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.kitchen-bill-receipt .receipt-logo-img {
+  max-height: 40px;
+  max-width: 80%;
+  object-fit: contain;
+}
+
+.kitchen-bill-receipt .receipt-logo-placeholder {
+  display: flex;
+  height: 40px;
+  width: 64px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #999;
+  font-size: 10px;
+  color: #666;
+}
+
 .kitchen-bill-receipt .receipt-title {
   text-align: center;
-  font-size: 16px;
   font-weight: 700;
   margin: 0 0 4px;
 }
 
-.kitchen-bill-receipt .receipt-sub {
+.kitchen-bill-receipt .receipt-sub,
+.kitchen-bill-receipt .receipt-contact {
   text-align: center;
-  font-size: 11px;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
 }
 
 .kitchen-bill-receipt .receipt-divider {
@@ -130,13 +157,20 @@
   justify-content: space-between;
   gap: 8px;
   margin: 4px 0;
-  font-size: 11px;
+}
+
+.kitchen-bill-receipt .receipt-meta-line {
+  margin: 4px 0;
+}
+
+.kitchen-bill-receipt .receipt-payment {
+  text-align: center;
+  margin-top: 8px;
 }
 
 .kitchen-bill-receipt .receipt-items-head {
   font-weight: 700;
   margin: 0 0 6px;
-  font-size: 11px;
 }
 
 .kitchen-bill-receipt .receipt-items {
@@ -145,12 +179,14 @@
   padding: 0;
 }
 
+.kitchen-bill-receipt .receipt-item-block {
+  margin-bottom: 6px;
+}
+
 .kitchen-bill-receipt .receipt-item {
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  margin-bottom: 6px;
-  font-size: 11px;
 }
 
 .kitchen-bill-receipt .receipt-item-name {
@@ -162,18 +198,63 @@
   white-space: nowrap;
 }
 
+.kitchen-bill-receipt .receipt-item-qty {
+  margin: 2px 0 0;
+  color: #444;
+  font-size: 0.92em;
+}
+
 .kitchen-bill-receipt .receipt-total {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
   font-weight: 700;
   margin: 0;
 }
 
 .kitchen-bill-receipt .receipt-footer {
   text-align: center;
-  font-size: 10px;
   margin: 0;
+}
+
+.kitchen-bill-receipt .receipt-thanks {
+  font-weight: 600;
+}
+
+.kitchen-bill-receipt .receipt-additional {
+  margin-top: 4px;
+  color: #444;
+}
+
+.kitchen-bill-receipt .receipt-qr-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0;
+}
+
+.kitchen-bill-receipt .receipt-qr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #666;
+  background: #fafafa;
+  font-size: 10px;
+  color: #555;
+}
+
+.kitchen-bill-receipt .receipt-qr-ebarimt {
+  width: 96px;
+  height: 96px;
+}
+
+.kitchen-bill-receipt .receipt-qr-delivery {
+  width: 80px;
+  height: 80px;
+}
+
+.kitchen-bill-receipt .receipt-qr-generic {
+  width: 64px;
+  height: 64px;
+  border-style: dashed;
 }
 
 @media print {
@@ -199,8 +280,16 @@
     position: absolute;
     left: 0;
     top: 0;
+  }
+
+  #kitchen-bill-receipt.receipt-size-80mm {
     width: 80mm;
     max-width: 80mm;
+  }
+
+  #kitchen-bill-receipt.receipt-size-58mm {
+    width: 58mm;
+    max-width: 58mm;
   }
 
   .bill-receipt-actions,
@@ -219,12 +308,20 @@
     left: 0 !important;
     top: 0 !important;
     transform: none !important;
-    width: 80mm !important;
-    max-width: 80mm !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
     background: #fff !important;
+  }
+
+  [data-slot="dialog-content"].kitchen-bill-dialog.receipt-size-80mm {
+    width: 80mm !important;
+    max-width: 80mm !important;
+  }
+
+  [data-slot="dialog-content"].kitchen-bill-dialog.receipt-size-58mm {
+    width: 58mm !important;
+    max-width: 58mm !important;
   }
 }
 

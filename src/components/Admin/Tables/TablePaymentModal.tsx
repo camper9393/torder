@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,8 +18,12 @@ import { postApi } from "@/utils/common";
 import { formatPrice } from "@/utils/currency";
 import { cn } from "@/lib/utils";
 import {
+  buildReceiptContextParams,
+  useReceiptRestaurantId,
+} from "@/components/receipt/useReceiptRestaurantId";
+import { useTablePaymentMethods } from "@/hooks/useTablePaymentMethods";
+import {
   DISCOUNT_PRESETS,
-  TABLE_PAYMENT_METHODS,
   TABLE_VAT_TYPES,
   type TablePaymentMethod,
   type TablePaymentReceiptData,
@@ -28,6 +33,7 @@ import {
   estimateVatAmount,
   parsePaidKeypadInput,
 } from "@/utils/tablePayment";
+import { findPaymentMethodOption } from "@/utils/paymentMethodOptions";
 
 const KEYPAD_KEYS = [
   ["7", "8", "9"],
@@ -52,6 +58,7 @@ type TablePaymentModalProps = {
   subtotal: number;
   orderLines?: TablePaymentOrderLine[];
   merchantId?: string;
+  tableRestaurantId?: string;
   onPaid: (receipt: TablePaymentReceiptData) => void;
   onPrintDraft: () => void;
 };
@@ -119,9 +126,31 @@ export default function TablePaymentModal({
   subtotal,
   orderLines = [],
   merchantId,
+  tableRestaurantId,
   onPaid,
   onPrintDraft,
 }: TablePaymentModalProps) {
+  const { restaurantId: resolvedRestaurantId, ready: restaurantIdReady } =
+    useReceiptRestaurantId({
+      enabled: open,
+      tableRestaurantId,
+    });
+
+  const paymentApiParams = React.useMemo(
+    () =>
+      buildReceiptContextParams({
+        restaurantId: resolvedRestaurantId,
+        merchantId,
+      }),
+    [resolvedRestaurantId, merchantId]
+  );
+
+  const {
+    options: paymentOptions,
+    loading: paymentMethodsLoading,
+    error: paymentMethodsError,
+  } = useTablePaymentMethods(open && restaurantIdReady, paymentApiParams);
+
   const [guestCount, setGuestCount] = React.useState(2);
   const [guestEditOpen, setGuestEditOpen] = React.useState(false);
   const [guestDraft, setGuestDraft] = React.useState("2");
@@ -135,12 +164,30 @@ export default function TablePaymentModal({
   const [paidInput, setPaidInput] = React.useState("0");
   const [submitting, setSubmitting] = React.useState(false);
 
+  const selectedPaymentOption = React.useMemo(
+    () => findPaymentMethodOption(paymentOptions, paymentMethod),
+    [paymentOptions, paymentMethod]
+  );
+  const isCashPayment = selectedPaymentOption?.isCash ?? paymentMethod === "Бэлэн";
+  const isQPayPayment = selectedPaymentOption?.isQPay ?? paymentMethod === "QPay";
+
+  React.useEffect(() => {
+    if (!open || paymentMethodsLoading || paymentOptions.length === 0) return;
+
+    setPaymentMethod((current) => {
+      if (paymentOptions.some((option) => option.label === current)) {
+        return current;
+      }
+      const cashOption = paymentOptions.find((option) => option.isCash);
+      return cashOption?.label ?? paymentOptions[0].label;
+    });
+  }, [open, paymentMethodsLoading, paymentOptions]);
+
   React.useEffect(() => {
     if (!open) return;
     setGuestCount(2);
     setGuestEditOpen(false);
     setGuestDraft("2");
-    setPaymentMethod("Бэлэн");
     setVatType("НӨАТ-гүй");
     setDiscountPercent(null);
     setCustomDiscount("");
@@ -162,19 +209,19 @@ export default function TablePaymentModal({
   const vatAmount = estimateVatAmount(amountDue, vatType);
 
   const paidAmount =
-    paymentMethod === "Бэлэн"
+    isCashPayment
       ? parsePaidKeypadInput(paidInput)
       : amountDue;
   const changeAmount = Math.max(0, paidAmount - amountDue);
 
   React.useEffect(() => {
-    if (paymentMethod !== "Бэлэн") {
+    if (!isCashPayment) {
       setPaidInput(String(amountDue || 0));
     }
-  }, [paymentMethod, amountDue]);
+  }, [isCashPayment, amountDue]);
 
   const handleKeypad = (key: string) => {
-    if (paymentMethod !== "Бэлэн") return;
+    if (!isCashPayment) return;
     if (key === "←") {
       setPaidInput((prev) => backspaceKeypadInput(prev));
       return;
@@ -268,7 +315,9 @@ export default function TablePaymentModal({
           <DialogTitle className="text-xl font-bold text-slate-900 sm:text-2xl">
             Төлбөр төлөх
           </DialogTitle>
-          <p className="mt-1 text-sm text-slate-500">{tableLabel}</p>
+          <DialogDescription className="mt-1 text-sm text-slate-500">
+            {tableLabel}
+          </DialogDescription>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/60 px-4 py-5 sm:px-6">
@@ -330,18 +379,33 @@ export default function TablePaymentModal({
 
               <SectionCard>
                 <SectionTitle>Төлбөрийн хэлбэр</SectionTitle>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-                  {TABLE_PAYMENT_METHODS.map((method) => (
-                    <ChoiceButton
-                      key={method}
-                      active={paymentMethod === method}
-                      onClick={() => setPaymentMethod(method)}
-                    >
-                      {method}
-                    </ChoiceButton>
-                  ))}
-                </div>
-                {paymentMethod === "QPay" ? (
+                {paymentMethodsLoading || !restaurantIdReady ? (
+                  <p className="text-sm text-slate-500">
+                    Төлбөрийн арга ачааллаж байна...
+                  </p>
+                ) : paymentOptions.length === 0 ? (
+                  <p className="text-sm text-amber-700">
+                    Идэвхтэй төлбөрийн арга тохируулаагүй байна.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                    {paymentOptions.map((option) => (
+                      <ChoiceButton
+                        key={option.id}
+                        active={paymentMethod === option.label}
+                        onClick={() => setPaymentMethod(option.label)}
+                      >
+                        {option.label}
+                      </ChoiceButton>
+                    ))}
+                  </div>
+                )}
+                {paymentMethodsError ? (
+                  <p className="mt-2 text-xs text-amber-700">
+                    {paymentMethodsError}
+                  </p>
+                ) : null}
+                {isQPayPayment ? (
                   <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-xs text-slate-500">
                     QPay QR код — удахгүй нэмэгдэнэ (placeholder)
                   </div>
@@ -476,7 +540,7 @@ export default function TablePaymentModal({
                     <button
                       key={key}
                       type="button"
-                      disabled={paymentMethod !== "Бэлэн" || submitting}
+                      disabled={!isCashPayment || submitting}
                       onClick={() => handleKeypad(key)}
                       className={cn(
                         "flex h-14 min-h-[3.5rem] items-center justify-center rounded-xl border border-slate-200 bg-white text-2xl font-bold text-slate-900 shadow-sm transition touch-manipulation",
@@ -521,7 +585,12 @@ export default function TablePaymentModal({
               type="button"
               className="min-h-[3.25rem] rounded-xl bg-[#1E5EFF] text-base font-bold text-white hover:bg-[#1548D4] touch-manipulation"
               onClick={() => void handlePay()}
-              disabled={submitting || subtotal <= 0}
+              disabled={
+                submitting ||
+                subtotal <= 0 ||
+                paymentMethodsLoading ||
+                paymentOptions.length === 0
+              }
             >
               {submitting ? "Бүртгэж байна..." : "Төлбөр төлөх"}
             </Button>

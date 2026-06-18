@@ -1,7 +1,5 @@
-import AdminProfilePage from "@/components/Admin/Profile";
-import { requireProfilePage } from "@/lib/profilePageAuth";
+import { redirect } from "next/navigation";
 
-export default async function AdminProfileRoutePage() {
-  await requireProfilePage("/admin/profile");
-  return <AdminProfilePage />;
+export default function AdminProfileRedirectPage() {
+  redirect("/admin/settings/users");
 }

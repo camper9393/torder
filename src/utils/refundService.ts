@@ -118,7 +118,10 @@ export async function getRefundEligibility(
 
   return {
     orderId: String(order._id),
-    orderNumber: formatOrderNumber(String(order._id)),
+    orderNumber: formatOrderNumber({
+      _id: String(order._id),
+      orderNo: order.orderNo,
+    }),
     tableName: order.tableName,
     paidAmount,
     paymentMethod: order.paymentMethod ?? DEFAULT_PAYMENT_METHOD,

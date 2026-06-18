@@ -1,5 +1,6 @@
 import mongoServer from "@/config/mongoConfig";
 import { resolveMerchantId } from "@/middleware/auth";
+import { Order } from "@/model/order";
 import { Refund, type RefundReason } from "@/model/refund";
 import { sendRJResponse } from "@/utils/api";
 import { refundsMatch, reportDateToString } from "@/utils/reports/aggregations";
@@ -95,8 +96,21 @@ export async function GET(req: NextRequest) {
 
     const metricsRow = facet?.metrics?.[0];
     const total = facet?.total?.[0]?.count ?? 0;
+    const refundRows = facet?.rows ?? [];
 
-    const refunds = (facet?.rows ?? []).map(
+    const orderIds = refundRows
+      .map((doc: { orderId: unknown }) => doc.orderId)
+      .filter(Boolean);
+    const orderDocs = orderIds.length
+      ? await Order.find({ _id: { $in: orderIds } })
+          .select("_id orderNo")
+          .lean()
+      : [];
+    const orderNoById = new Map(
+      orderDocs.map((doc) => [String(doc._id), doc.orderNo ?? ""])
+    );
+
+    const refunds = refundRows.map(
       (doc: {
         _id: unknown;
         orderId: unknown;
@@ -110,7 +124,10 @@ export async function GET(req: NextRequest) {
         return {
           _id: String(doc._id),
           orderId: String(doc.orderId),
-          orderNumber: formatOrderNumber(String(doc.orderId)),
+          orderNumber: formatOrderNumber({
+            _id: String(doc.orderId),
+            orderNo: orderNoById.get(String(doc.orderId)) || undefined,
+          }),
           tableName: doc.tableName,
           refundAmount: doc.refundAmount,
           reason: doc.reason,

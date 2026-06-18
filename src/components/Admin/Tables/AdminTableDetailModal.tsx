@@ -47,6 +47,7 @@ import {
 
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine, resolveOrderItemDisplay } from "@/utils/menuBilingual"
+import { formatOrderNumber } from "@/utils/serializeKitchenOrder"
 
 import { cn } from "@/lib/utils"
 
@@ -922,6 +923,7 @@ function AdminTableDetailModal({
         subtotal={originalTotal}
         orderLines={paymentOrderLines}
         merchantId={merchantId ? String(merchantId) : undefined}
+        tableRestaurantId={detail?.restaurantId}
         onPaid={handlePaymentSuccess}
         onPrintDraft={handlePrintDraft}
       />
@@ -934,6 +936,8 @@ function AdminTableDetailModal({
         }}
         order={printOrder}
         restaurantName={restaurantName}
+        merchantId={merchantId ? String(merchantId) : undefined}
+        tableRestaurantId={detail?.restaurantId}
         payment={paymentReceipt}
         showQrPlaceholder={paymentReceipt?.paymentMethod === "QPay"}
         closeTableLabel={at.closeTable}
@@ -1058,7 +1062,7 @@ function AdminTableDetailModal({
 
                       <p className="border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
 
-                        #{order._id.slice(-6)}
+                        #{formatOrderNumber(order)}
 
                       </p>
 

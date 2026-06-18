@@ -17,6 +17,10 @@ import { serializeKitchenOrder } from "@/utils/serializeKitchenOrder";
 import { ACTIVE_TABLE_ORDER_STATUSES } from "@/utils/tableManagement";
 
 import { normalizeTableName } from "@/utils/table";
+import {
+  generateOrderNumber,
+  isDuplicateKeyError,
+} from "@/utils/generateOrderNumber";
 
 import { isValidObjectId, Types } from "mongoose";
 
@@ -245,14 +249,39 @@ export async function POST(req: NextRequest) {
 
 
     const restaurantId = await resolveRestaurantIdForMerchant(merchantId);
-    const order = await Order.create({
-      merchantId,
-      restaurantId: restaurantId ?? undefined,
-      tableName: resolvedTableName,
-      items: dbItems,
-      total,
-      status: "accepted",
-    });
+
+    let order;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const orderNo = await generateOrderNumber({
+        merchantId,
+        restaurantId,
+      });
+
+      try {
+        order = await Order.create({
+          merchantId,
+          restaurantId: restaurantId ?? undefined,
+          orderNo,
+          tableName: resolvedTableName,
+          items: dbItems,
+          total,
+          status: "accepted",
+        });
+        break;
+      } catch (createError) {
+        if (!isDuplicateKeyError(createError) || attempt === 4) {
+          throw createError;
+        }
+      }
+    }
+
+    if (!order) {
+      return sendRJResponse({
+        success: false,
+        message: "Could not create order",
+        status: 500,
+      });
+    }
 
 
 

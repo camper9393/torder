@@ -38,11 +38,20 @@ export type OrderHistoryRow = {
   _id: string;
   orderNumber: string;
   tableName: string;
+  /** @deprecated closed date slice — use closedAt */
   date: string;
+  /** @deprecated closed time — use closedAt */
   time: string;
+  createdAt: string;
+  closedAt: string;
   itemsCount: number;
   total: number;
   netTotal: number;
+  grossTotal: number;
+  discountAmount: number;
+  paidAmount: number;
+  paymentMethod?: string;
+  vatType?: string;
   status: OrderStatus;
   refundStatus?: string;
 };

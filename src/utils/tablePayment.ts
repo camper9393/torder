@@ -1,7 +1,8 @@
-export type TablePaymentMethod = "Данс" | "Бэлэн" | "Карт" | "QPay";
+export type TablePaymentMethod = string;
 
 export type TableVatType = "Иргэн" | "Байгууллага" | "НӨАТ-гүй";
 
+/** @deprecated Use enabled options from Settings via useTablePaymentMethods */
 export const TABLE_PAYMENT_METHODS: TablePaymentMethod[] = [
   "Данс",
   "Бэлэн",

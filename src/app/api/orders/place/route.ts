@@ -13,6 +13,10 @@ import type { RawOrderItemLike } from "@/utils/orderItemPricing";
 import { computeOrderTotal } from "@/utils/orderTotals";
 
 import { normalizeTableName } from "@/utils/table";
+import {
+  generateOrderNumber,
+  isDuplicateKeyError,
+} from "@/utils/generateOrderNumber";
 
 import { isValidObjectId, Types } from "mongoose";
 
@@ -209,14 +213,40 @@ export async function POST(req: NextRequest) {
 
 
 
-    const order = await Order.create({
-      merchantId: merchantObjectId,
-      restaurantId: restaurantId ?? undefined,
-      tableName: resolvedTableName,
-      items: dbItems,
-      total,
-      status: "new",
-    });
+    const restaurantObjectId = restaurantId ?? null;
+
+    let order;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const orderNo = await generateOrderNumber({
+        merchantId: merchantObjectId,
+        restaurantId: restaurantObjectId,
+      });
+
+      try {
+        order = await Order.create({
+          merchantId: merchantObjectId,
+          restaurantId: restaurantId ?? undefined,
+          orderNo,
+          tableName: resolvedTableName,
+          items: dbItems,
+          total,
+          status: "new",
+        });
+        break;
+      } catch (createError) {
+        if (!isDuplicateKeyError(createError) || attempt === 4) {
+          throw createError;
+        }
+      }
+    }
+
+    if (!order) {
+      return sendRJResponse({
+        success: false,
+        message: "Could not create order",
+        status: 500,
+      });
+    }
 
 
 

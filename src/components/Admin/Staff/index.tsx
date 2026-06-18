@@ -34,6 +34,8 @@ type StaffListResponse = {
 
 type Props = {
   currentUser: PublicUser;
+  defaultRestaurantId?: string;
+  hideRestaurantSelector?: boolean;
 };
 
 const EMPTY_FORM = {
@@ -44,12 +46,17 @@ const EMPTY_FORM = {
   role: UserRole.WAITER as UserRole,
 };
 
-export default function AdminStaffPage({ currentUser }: Props) {
+export default function AdminStaffPage({
+  currentUser,
+  defaultRestaurantId,
+  hideRestaurantSelector = false,
+}: Props) {
   const isPlatformOwner = currentUser.role === UserRole.PLATFORM_OWNER;
   const [staff, setStaff] = React.useState<PublicUser[]>([]);
   const [assignableRoles, setAssignableRoles] = React.useState<UserRole[]>([]);
   const [restaurantId, setRestaurantId] = React.useState<string>(
-    currentUser.restaurantId ? String(currentUser.restaurantId) : ""
+    defaultRestaurantId ||
+      (currentUser.restaurantId ? String(currentUser.restaurantId) : "")
   );
   const [restaurants, setRestaurants] = React.useState<Restaurant[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -62,16 +69,16 @@ export default function AdminStaffPage({ currentUser }: Props) {
   const [savingId, setSavingId] = React.useState<string | null>(null);
 
   const loadRestaurants = React.useCallback(async () => {
-    if (!isPlatformOwner) return;
+    if (!isPlatformOwner || hideRestaurantSelector) return;
     const res = await getApi<{
       success: boolean;
       data?: Restaurant[];
     }>({ url: GET_PLATFORM_RESTAURANTS });
     if (res?.success && res.data?.length) {
       setRestaurants(res.data);
-      setRestaurantId((prev) => prev || String(res.data![0]._id));
+      setRestaurantId((prev) => prev || defaultRestaurantId || String(res.data![0]._id));
     }
-  }, [isPlatformOwner]);
+  }, [isPlatformOwner, hideRestaurantSelector, defaultRestaurantId]);
 
   const loadStaff = React.useCallback(
     async (scopeRestaurantId?: string) => {
@@ -93,6 +100,12 @@ export default function AdminStaffPage({ currentUser }: Props) {
     },
     [isPlatformOwner, restaurantId]
   );
+
+  React.useEffect(() => {
+    if (defaultRestaurantId) {
+      setRestaurantId(defaultRestaurantId);
+    }
+  }, [defaultRestaurantId]);
 
   React.useEffect(() => {
     void loadRestaurants();
@@ -203,7 +216,7 @@ export default function AdminStaffPage({ currentUser }: Props) {
         </p>
       </div>
 
-      {isPlatformOwner && restaurants.length > 0 ? (
+      {isPlatformOwner && !hideRestaurantSelector && restaurants.length > 0 ? (
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <label className="mb-1.5 block text-sm font-medium text-zinc-700">
             Ресторан сонгох

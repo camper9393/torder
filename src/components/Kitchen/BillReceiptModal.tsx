@@ -4,36 +4,38 @@ import React from "react"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { KitchenOrder } from "@/types/kitchenOrder"
 import { Printer } from "lucide-react"
-import { formatPrice } from "@/utils/currency"
-import {
-  computeLineItemSubtotal,
-  computeOrderTotal,
-  resolveLineItemQuantity,
-} from "@/utils/orderTotals"
-import { labelOrderStatus } from "@/utils/i18n/orderStatus"
-import { useLocale } from "@/context/LocaleContext"
-import { formatOrderItemLine } from "@/utils/menuBilingual"
 import { cn } from "@/lib/utils"
 import type { TablePaymentReceiptData } from "@/utils/tablePayment"
+import { buildReceiptRenderData } from "@/components/receipt/buildReceiptRenderData"
+import ReceiptDocument from "@/components/receipt/ReceiptDocument"
+import {
+  buildReceiptContextParams,
+  useReceiptRestaurantId,
+} from "@/components/receipt/useReceiptRestaurantId"
+import { useReceiptSettings } from "@/components/receipt/useReceiptSettings"
+import { useLocale } from "@/context/LocaleContext"
+import { formatOrderItemLine } from "@/utils/menuBilingual"
+import { resolveLineItemQuantity } from "@/utils/orderTotals"
+import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 
 type BillReceiptModalProps = {
   open: boolean
   onClose: () => void
   order: KitchenOrder | null
   restaurantName: string
-  /** Admin tables: close table after checkout */
+  merchantId?: string
+  tableRestaurantId?: string
   onCloseTable?: () => void | Promise<void>
   closeTableLabel?: string
   confirmCloseTable?: string
   closingTable?: boolean
-  /** POS payment receipt details */
   payment?: TablePaymentReceiptData | null
-  /** After payment — show finish without closing table */
   onFinish?: () => void
   finishLabel?: string
   showQrPlaceholder?: boolean
@@ -44,6 +46,8 @@ function BillReceiptModal({
   onClose,
   order,
   restaurantName,
+  merchantId,
+  tableRestaurantId,
   onCloseTable,
   closeTableLabel = "Close Table",
   confirmCloseTable = "Are you sure you want to close this table?",
@@ -56,6 +60,28 @@ function BillReceiptModal({
   const { t, locale, dateLocale } = useLocale()
   const c = t.common
 
+  const { restaurantId: resolvedRestaurantId, ready: restaurantIdReady } =
+    useReceiptRestaurantId({
+      enabled: open,
+      orderRestaurantId: order?.restaurantId,
+      tableRestaurantId,
+    })
+
+  const receiptApiParams = React.useMemo(
+    () =>
+      buildReceiptContextParams({
+        restaurantId: resolvedRestaurantId,
+        merchantId,
+      }),
+    [resolvedRestaurantId, merchantId]
+  )
+
+  const { settings, company, loading, error } = useReceiptSettings(
+    open && restaurantIdReady,
+    receiptApiParams,
+    { source: "print" }
+  )
+
   const handlePrint = () => {
     window.print()
   }
@@ -66,199 +92,144 @@ function BillReceiptModal({
     await onCloseTable()
   }
 
-  if (!order) return null
-
-  const receiptItems = order.items
-  const receiptSubtotal = payment?.subtotal ?? computeOrderTotal(receiptItems)
-  const receiptTotal = payment?.amountDue ?? computeOrderTotal(receiptItems)
-  const orderIdShort = String(order._id).slice(-8).toUpperCase()
-
-  const formatReceiptDate = (value: string) =>
-    new Date(value).toLocaleString(dateLocale, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    })
-
-  const receiptDate = payment?.paidAt ?? order.createdAt
   const isPaidReceipt = Boolean(payment)
+
+  const receiptData = React.useMemo(() => {
+    if (!order || loading || !restaurantIdReady) return null
+    return buildReceiptRenderData({
+      order,
+      payment,
+      company,
+      settings,
+      fallbackRestaurantName: restaurantName,
+      dateLocale,
+      formatItemName: (item, qty) =>
+        formatOrderItemLine(item, locale, qty || resolveLineItemQuantity(item)),
+      orderStatusLabel: labelOrderStatus(order.status, locale),
+    })
+  }, [
+    order,
+    loading,
+    restaurantIdReady,
+    payment,
+    company,
+    settings,
+    restaurantName,
+    dateLocale,
+    locale,
+  ])
+
+  const effectiveSettings = React.useMemo(() => {
+    if (!showQrPlaceholder || settings.showDeliveryQr) {
+      return settings
+    }
+    return {
+      ...settings,
+      showDeliveryQr: payment?.paymentMethod === "QPay",
+    }
+  }, [settings, showQrPlaceholder, payment?.paymentMethod])
+
+  const sizeClass =
+    effectiveSettings.receiptSize === "58mm"
+      ? "receipt-size-58mm"
+      : "receipt-size-80mm"
+
+  const isSettingsLoading = loading || !restaurantIdReady
+
+  if (!order) return null
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="kitchen-bill-dialog max-w-md print:max-w-none">
+      <DialogContent
+        className={cn(
+          "kitchen-bill-dialog max-w-md print:max-w-none",
+          sizeClass
+        )}
+      >
         <DialogTitle className="bill-receipt-actions sr-only">
           {c.billReceipt}
         </DialogTitle>
+        <DialogDescription className="sr-only">
+          {isPaidReceipt ? "Төлбөрийн баримт" : "Захиалгын баримт"}
+        </DialogDescription>
 
-        <div className="bill-receipt-actions mb-4 flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            onClick={handlePrint}
-            className="min-h-12 bg-green-600 px-4 text-base text-white hover:bg-green-700 touch-manipulation"
-          >
-            <Printer className="mr-2 h-5 w-5" aria-hidden />
-            {isPaidReceipt ? "Хэвлэх" : c.print}
-          </Button>
-          {isPaidReceipt && onCloseTable ? (
-            <Button
-              type="button"
-              disabled={closingTable}
-              onClick={handleCloseTable}
-              className={cn(
-                "min-h-12 rounded-xl bg-red-600 px-5 text-base font-bold text-white shadow-md",
-                "hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 touch-manipulation print:hidden"
+        {isSettingsLoading || !receiptData ? (
+          <p className="py-8 text-center text-sm text-slate-500">
+            Баримт ачааллаж байна...
+          </p>
+        ) : (
+          <>
+            {error ? (
+              <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="bill-receipt-actions mb-4 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                onClick={handlePrint}
+                className="min-h-12 bg-green-600 px-4 text-base text-white hover:bg-green-700 touch-manipulation"
+              >
+                <Printer className="mr-2 h-5 w-5" aria-hidden />
+                {isPaidReceipt ? "Хэвлэх" : c.print}
+              </Button>
+              {isPaidReceipt && onCloseTable ? (
+                <Button
+                  type="button"
+                  disabled={closingTable}
+                  onClick={handleCloseTable}
+                  className={cn(
+                    "min-h-12 rounded-xl bg-red-600 px-5 text-base font-bold text-white shadow-md",
+                    "hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 touch-manipulation print:hidden"
+                  )}
+                >
+                  {closingTable ? c.loading : closeTableLabel}
+                </Button>
+              ) : null}
+              {isPaidReceipt && onFinish ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onFinish}
+                  className="min-h-12 px-4 text-base touch-manipulation print:hidden"
+                >
+                  {finishLabel}
+                </Button>
+              ) : null}
+              {!isPaidReceipt ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="min-h-12 px-4 text-base touch-manipulation"
+                >
+                  {c.close}
+                </Button>
+              ) : null}
+              {!isPaidReceipt && onCloseTable && (
+                <Button
+                  type="button"
+                  disabled={closingTable}
+                  onClick={handleCloseTable}
+                  className={cn(
+                    "ml-auto min-h-12 rounded-xl bg-red-600 px-5 text-base font-bold text-white shadow-md",
+                    "hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 touch-manipulation print:hidden"
+                  )}
+                >
+                  {closingTable ? c.loading : closeTableLabel}
+                </Button>
               )}
+            </div>
+
+            <div
+              id="kitchen-bill-receipt"
+              className={cn("kitchen-bill-receipt", sizeClass)}
             >
-              {closingTable ? c.loading : closeTableLabel}
-            </Button>
-          ) : null}
-          {isPaidReceipt && onFinish ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onFinish}
-              className="min-h-12 px-4 text-base touch-manipulation print:hidden"
-            >
-              {finishLabel}
-            </Button>
-          ) : null}
-          {!isPaidReceipt ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="min-h-12 px-4 text-base touch-manipulation"
-            >
-              {c.close}
-            </Button>
-          ) : null}
-          {!isPaidReceipt && onCloseTable && (
-            <Button
-              type="button"
-              disabled={closingTable}
-              onClick={handleCloseTable}
-              className={cn(
-                "ml-auto min-h-12 rounded-xl bg-red-600 px-5 text-base font-bold text-white shadow-md",
-                "hover:bg-red-700 active:scale-[0.98] disabled:opacity-60 touch-manipulation print:hidden"
-              )}
-            >
-              {closingTable ? c.loading : closeTableLabel}
-            </Button>
-          )}
-        </div>
-
-        <div id="kitchen-bill-receipt" className="kitchen-bill-receipt">
-          <div className="receipt-inner">
-            <p className="receipt-title">{restaurantName}</p>
-            <p className="receipt-sub">{c.taxInvoiceBill}</p>
-            <div className="receipt-divider" />
-
-            <p className="receipt-row">
-              <span>{c.table}</span>
-              <span>{order.tableName}</span>
-            </p>
-            <p className="receipt-row">
-              <span>{c.orderId}</span>
-              <span>#{orderIdShort}</span>
-            </p>
-            <p className="receipt-row">
-              <span>{c.date}</span>
-              <span>{formatReceiptDate(receiptDate)}</span>
-            </p>
-            {payment?.guestCount ? (
-              <p className="receipt-row">
-                <span>Зочдын тоо</span>
-                <span>{payment.guestCount}</span>
-              </p>
-            ) : null}
-            {!isPaidReceipt ? (
-              <p className="receipt-row">
-                <span>{c.status}</span>
-                <span>{labelOrderStatus(order.status, locale)}</span>
-              </p>
-            ) : null}
-            {payment?.vatType ? (
-              <p className="receipt-row">
-                <span>Баримтын төрөл</span>
-                <span>{payment.vatType}</span>
-              </p>
-            ) : null}
-
-            <div className="receipt-divider" />
-            <p className="receipt-items-head">{c.items}</p>
-
-            <ul className="receipt-items">
-              {receiptItems.map((item, idx) => (
-                <li key={idx} className="receipt-item">
-                  <span className="receipt-item-name">
-                    {formatOrderItemLine(
-                      item,
-                      locale,
-                      resolveLineItemQuantity(item)
-                    )}
-                  </span>
-                  <span className="receipt-item-price">
-                    {formatPrice(computeLineItemSubtotal(item))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="receipt-divider" />
-            {payment ? (
-              <>
-                <p className="receipt-row">
-                  <span>Дэд дүн</span>
-                  <span>{formatPrice(payment.subtotal)}</span>
-                </p>
-                {payment.discountAmount > 0 ? (
-                  <p className="receipt-row">
-                    <span>Хөнгөлөлт</span>
-                    <span>-{formatPrice(payment.discountAmount)}</span>
-                  </p>
-                ) : null}
-                {payment.vatType !== "НӨАТ-гүй" && payment.vatAmount > 0 ? (
-                  <p className="receipt-row">
-                    <span>НӨАТ</span>
-                    <span>{formatPrice(payment.vatAmount)}</span>
-                  </p>
-                ) : null}
-                <p className="receipt-total">
-                  <span>Төлсөн дүн</span>
-                  <span>{formatPrice(payment.paidAmount)}</span>
-                </p>
-                {payment.changeAmount > 0 ? (
-                  <p className="receipt-row">
-                    <span>Хариулт</span>
-                    <span>{formatPrice(payment.changeAmount)}</span>
-                  </p>
-                ) : null}
-                <p className="receipt-row">
-                  <span>Төлбөрийн хэлбэр</span>
-                  <span>{payment.paymentMethod}</span>
-                </p>
-              </>
-            ) : (
-              <p className="receipt-total">
-                <span>{c.total}</span>
-                <span>{formatPrice(receiptTotal)}</span>
-              </p>
-            )}
-
-            {(showQrPlaceholder || payment?.paymentMethod === "QPay") && (
-              <>
-                <div className="receipt-divider" />
-                <div className="mx-auto my-2 flex h-24 w-24 items-center justify-center rounded border border-dashed border-slate-400 text-[9px] text-slate-500">
-                  QR
-                </div>
-                <p className="receipt-footer">eBarimt / QPay — удахгүй</p>
-              </>
-            )}
-
-            <div className="receipt-divider" />
-            <p className="receipt-footer">{c.thankYou}</p>
-          </div>
-        </div>
-
+              <ReceiptDocument settings={effectiveSettings} data={receiptData} />
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   )

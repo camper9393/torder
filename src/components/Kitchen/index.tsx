@@ -26,6 +26,7 @@ import { labelOrderStatus } from "@/utils/i18n/orderStatus"
 import { formatPrice } from "@/utils/currency"
 import { useLocale } from "@/context/LocaleContext"
 import { formatOrderItemLine } from "@/utils/menuBilingual"
+import { formatOrderNumber } from "@/utils/serializeKitchenOrder"
 
 const statusColor: Record<OrderStatus, string> = {
   new: "bg-amber-100 text-amber-800",
@@ -233,6 +234,7 @@ function KitchenPage() {
                               {order.tableName}
                             </h2>
                             <p className="text-xs text-gray-500">
+                              #{formatOrderNumber(order)} ·{" "}
                               {new Date(order.createdAt).toLocaleString(dateLocale)}
                             </p>
                           </div>

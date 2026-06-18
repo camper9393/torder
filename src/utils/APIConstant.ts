@@ -152,6 +152,29 @@ export const GET_ADMIN_DASHBOARD: string = "/admin/dashboard"
 // database backup
 export const GET_DATABASE_BACKUP: string = "/backup"
 
+// admin settings
+export const GET_ADMIN_SETTINGS_COMPANY: string = "/admin/settings/company"
+export const PATCH_ADMIN_SETTINGS_COMPANY: string = "/admin/settings/company"
+export const GET_ADMIN_SETTINGS_BRANCHES: string = "/admin/settings/branches"
+export const POST_ADMIN_SETTINGS_BRANCH: string = "/admin/settings/branches"
+export const PATCH_ADMIN_SETTINGS_BRANCH = (id: string) =>
+  `/admin/settings/branches/${id}`
+export const DELETE_ADMIN_SETTINGS_BRANCH = (id: string) =>
+  `/admin/settings/branches/${id}`
+export const GET_ADMIN_SETTINGS_PAYMENTS: string = "/admin/settings/payments"
+export const PATCH_ADMIN_SETTINGS_PAYMENTS: string = "/admin/settings/payments"
+export const GET_ADMIN_SETTINGS_RECEIPT: string = "/admin/settings/receipt"
+export const PATCH_ADMIN_SETTINGS_RECEIPT: string = "/admin/settings/receipt"
+export const GET_RECEIPT_CONTEXT: string = "/receipt/context"
+export const GET_PAYMENT_METHODS: string = "/payment/methods"
+export const GET_ADMIN_SETTINGS_VAT: string = "/admin/settings/vat"
+export const PATCH_ADMIN_SETTINGS_VAT: string = "/admin/settings/vat"
+export const GET_ADMIN_SETTINGS_SUBSCRIPTION: string =
+  "/admin/settings/subscription"
+export const GET_ADMIN_SETTINGS_AUDIT: string = "/admin/settings/audit"
+export const GET_ADMIN_SETTINGS_AUDIT_EXPORT: string =
+  "/admin/settings/audit/export"
+
 // inventory
 export const GET_INVENTORY_DASHBOARD: string = "/inventory/dashboard"
 export const GET_INVENTORY_ITEMS: string = "/inventory/items"

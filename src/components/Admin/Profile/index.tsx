@@ -151,7 +151,7 @@ export default function AdminProfilePage() {
     );
   }
 
-  const { user, restaurant, capabilities, session } = profile;
+  const { user, capabilities, session } = profile;
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 pb-8">
@@ -188,35 +188,6 @@ export default function AdminProfilePage() {
             }
           />
           <InfoRow label="Нэвтрэх дансны төрөл" value={profile.accountType} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Рестораны мэдээлэл</CardTitle>
-          <CardDescription>
-            Таны холбогдсон ресторан болон захиалгын багц
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {restaurant ? (
-            <>
-              <InfoRow label="Ресторан" value={restaurant.name} />
-              <InfoRow label="Багц" value={restaurant.planLabel} />
-              <InfoRow
-                label="Захиалгын төлөв"
-                value={restaurant.subscriptionLabel}
-              />
-              <InfoRow
-                label="Дуусах огноо"
-                value={formatDate(restaurant.expireDate)}
-              />
-            </>
-          ) : (
-            <p className="text-sm text-slate-500">
-              Platform түвшний данс — тодорхой нэг ресторонд холбогдоогүй
-            </p>
-          )}
         </CardContent>
       </Card>
 

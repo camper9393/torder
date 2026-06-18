@@ -18,8 +18,13 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "My Rj Menu",
+  title: "T Order",
   description: "Instant QR menus for modern restaurants. No app downloads required. Just scan, order, and enjoy.",
+  icons: {
+    icon: [{ url: "/img/Tablogo.png", type: "image/png" }],
+    shortcut: [{ url: "/img/Tablogo.png", type: "image/png" }],
+    apple: [{ url: "/img/Tablogo.png", type: "image/png" }],
+  },
 }
 
 export default function RootLayout({

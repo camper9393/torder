@@ -68,7 +68,7 @@ function HistoryOrderCard({
             {order.tableName}
           </h3>
           <p className="mt-1 text-xs text-gray-500">
-            #{formatOrderNumber(order._id)}
+            #{formatOrderNumber(order)}
           </p>
           <p className="mt-1 text-xs text-gray-500">
             {c.placed}: {formatDateTime(order.createdAt)}
