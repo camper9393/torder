@@ -34,6 +34,7 @@ import {
   POST_PLATFORM_USER_RESET_PASSWORD,
 } from "@/utils/APIConstant";
 import { deleteApi, getApi, patchApi, postApi } from "@/utils/common";
+import { notifyRestaurantInfoUpdated } from "@/utils/restaurantInfoRefresh";
 import toast from "react-hot-toast";
 import {
   ConfirmDialog,
@@ -150,7 +151,17 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
     ownerName: "",
     email: "",
     phone: "",
+    phone2: "",
     address: "",
+    englishName: "",
+    logoUrl: "",
+    businessType: "",
+    description: "",
+    detailDescription: "",
+    website: "",
+    facebook: "",
+    instagram: "",
+    googleMapLink: "",
     plan: "business" as RestaurantPlan,
     maxTables: "30",
     maxUsers: "10",
@@ -176,7 +187,17 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
         ownerName: r.ownerName,
         email: r.email,
         phone: r.phone,
+        phone2: r.phone2 ?? "",
         address: r.address,
+        englishName: r.englishName ?? "",
+        logoUrl: r.logoUrl ?? "",
+        businessType: r.businessType ?? "",
+        description: r.description ?? "",
+        detailDescription: r.detailDescription ?? "",
+        website: r.website ?? "",
+        facebook: r.facebook ?? "",
+        instagram: r.instagram ?? "",
+        googleMapLink: r.googleMapLink ?? "",
         plan: r.plan,
         maxTables: String(r.maxTables),
         maxUsers: String(r.maxUsers),
@@ -322,6 +343,7 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
     else {
       setSuccess(res.message || "Амжилттай хадгаллаа");
       await loadSummary();
+      notifyRestaurantInfoUpdated();
     }
     setSaving(false);
   };
@@ -471,10 +493,19 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
           <div className="grid gap-6 lg:grid-cols-2">
             <InfoCard title="Үндсэн мэдээлэл">
               <InfoRow label="Рестораны нэр" value={restaurant.name} />
+              <InfoRow label="Англи нэр" value={restaurant.englishName || "—"} />
               <InfoRow label="Эзэмшигч" value={restaurant.ownerName} />
               <InfoRow label="Имэйл" value={restaurant.email} />
-              <InfoRow label="Утас" value={restaurant.phone} />
+              <InfoRow label="Утас 1" value={restaurant.phone} />
+              <InfoRow label="Утас 2" value={restaurant.phone2 || "—"} />
               <InfoRow label="Хаяг" value={restaurant.address || "—"} />
+              <InfoRow label="Үйл ажиллагааны төрөл" value={restaurant.businessType || "—"} />
+              <InfoRow label="Танилцуулга" value={restaurant.description || "—"} />
+              <InfoRow label="Дэлгэрэнгүй тайлбар" value={restaurant.detailDescription || "—"} />
+              <InfoRow label="Веб сайт" value={restaurant.website || "—"} />
+              <InfoRow label="Facebook" value={restaurant.facebook || "—"} />
+              <InfoRow label="Instagram" value={restaurant.instagram || "—"} />
+              <InfoRow label="Google map" value={restaurant.googleMapLink || "—"} />
               <InfoRow label="Бүртгэсэн" value={formatMnDate(restaurant.createdAt)} />
               <InfoRow label="Төлөв" value={restaurant.isActive ? "Идэвхтэй" : "Идэвхгүй"} />
             </InfoCard>
@@ -712,12 +743,57 @@ export default function RestaurantDetailPage({ id }: { id: string }) {
               <Input type="email" value={settingsForm.email} onChange={(e) => setSettingsForm((f) => ({ ...f, email: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Утас</label>
+              <label className="text-sm font-medium">Утас 1</label>
               <Input value={settingsForm.phone} onChange={(e) => setSettingsForm((f) => ({ ...f, phone: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Утас 2</label>
+              <Input value={settingsForm.phone2} onChange={(e) => setSettingsForm((f) => ({ ...f, phone2: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Англи нэр</label>
+              <Input value={settingsForm.englishName} onChange={(e) => setSettingsForm((f) => ({ ...f, englishName: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Лого (URL)</label>
+              <Input value={settingsForm.logoUrl} onChange={(e) => setSettingsForm((f) => ({ ...f, logoUrl: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Үйл ажиллагааны төрөл</label>
+              <Input value={settingsForm.businessType} onChange={(e) => setSettingsForm((f) => ({ ...f, businessType: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-sm font-medium">Танилцуулга</label>
+              <Input value={settingsForm.description} onChange={(e) => setSettingsForm((f) => ({ ...f, description: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-sm font-medium">Дэлгэрэнгүй тайлбар</label>
+              <textarea
+                value={settingsForm.detailDescription}
+                onChange={(e) => setSettingsForm((f) => ({ ...f, detailDescription: e.target.value }))}
+                rows={4}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Веб сайт</label>
+              <Input value={settingsForm.website} onChange={(e) => setSettingsForm((f) => ({ ...f, website: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Facebook</label>
+              <Input value={settingsForm.facebook} onChange={(e) => setSettingsForm((f) => ({ ...f, facebook: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Instagram</label>
+              <Input value={settingsForm.instagram} onChange={(e) => setSettingsForm((f) => ({ ...f, instagram: e.target.value }))} />
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-sm font-medium">Хаяг</label>
               <Input value={settingsForm.address} onChange={(e) => setSettingsForm((f) => ({ ...f, address: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-sm font-medium">Google map link</label>
+              <Input value={settingsForm.googleMapLink} onChange={(e) => setSettingsForm((f) => ({ ...f, googleMapLink: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Багц</label>

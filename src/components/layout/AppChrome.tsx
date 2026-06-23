@@ -1,7 +1,11 @@
 "use client"
 
 import { usePathname } from "next/navigation"
-import { usesMerchantSidebar, usesPlatformSidebar } from "@/utils/routes"
+import {
+  isConsumerTabletRoute,
+  usesMerchantSidebar,
+  usesPlatformSidebar,
+} from "@/utils/routes"
 import MerchantAppLayout from "@/components/layout/MerchantAppLayout"
 import PlatformAppLayout from "@/components/layout/PlatformAppLayout"
 
@@ -19,6 +23,12 @@ export default function AppChrome({
 
   if (usesMerchantSidebar(pathname)) {
     return <MerchantAppLayout>{children}</MerchantAppLayout>
+  }
+
+  if (isConsumerTabletRoute(pathname)) {
+    return (
+      <main className="tablet-menu-page-root">{children}</main>
+    )
   }
 
   return <main className="flex-1">{children}</main>

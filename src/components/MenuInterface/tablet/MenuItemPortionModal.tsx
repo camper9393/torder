@@ -3,9 +3,8 @@
 import Image from "next/image"
 import { ImagePlus, Minus, Plus } from "lucide-react"
 import React from "react"
+import { createPortal } from "react-dom"
 
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { formatPrice } from "@/utils/currency"
 import { useLocale } from "@/context/LocaleContext"
 import { SpicyMenuBadge } from "@/components/MenuInterface/SpicyMenuBadge"
@@ -29,6 +28,15 @@ import {
   resolveMenuCardBadges,
   type MenuCardBadge,
 } from "./menuCardBadges"
+import { useTabletCartUiOptional } from "./useTabletCartUi"
+import {
+  DEFAULT_TABLET_TEXT_SCALE,
+  DEFAULT_TABLET_UI_SCALE,
+} from "@/utils/tabletUiScale"
+import {
+  buildTabletShellCssVars,
+  DEFAULT_TABLET_THEME,
+} from "@/utils/tabletTheme"
 
 type MenuItemPortionModalProps = {
   open: boolean
@@ -69,7 +77,7 @@ function BestRibbon() {
       className="pointer-events-none absolute left-0 top-0 z-20 h-20 w-20 overflow-hidden"
       aria-hidden
     >
-      <span className="absolute left-[-30px] top-[18px] flex w-[120px] -rotate-45 items-center justify-center bg-red-600 py-1.5 text-xs font-extrabold tracking-wider text-white shadow-md">
+      <span className="absolute left-[-30px] top-[18px] flex w-[120px] -rotate-45 items-center justify-center tablet-best-ribbon py-1.5 text-xs font-extrabold tracking-wider text-white shadow-md">
         BEST
       </span>
     </div>
@@ -104,6 +112,10 @@ function MenuItemPortionModal({
   onAddToCart,
 }: MenuItemPortionModalProps) {
   const { t, locale } = useLocale()
+  const cartUi = useTabletCartUiOptional()
+  const uiScale = cartUi?.uiScale ?? DEFAULT_TABLET_UI_SCALE
+  const textScale = cartUi?.textScale ?? DEFAULT_TABLET_TEXT_SCALE
+  const theme = cartUi?.theme ?? DEFAULT_TABLET_THEME
   const item = normalizeMenuDocument(rawItem)
   const sizes = item.sizes ?? []
   const needsPortionPicker = menuNeedsPortionPicker(item)
@@ -166,55 +178,65 @@ function MenuItemPortionModal({
 
   const imageSrc = item.image?.trim()
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        centered
-        showCloseButton={false}
-        className="flex h-[min(85dvh,900px)] max-h-[85dvh] w-[min(92vw,1100px)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-2xl"
+  if (typeof document === "undefined" || !open) return null
+
+  return createPortal(
+    <div className="tablet-item-modal-root fixed inset-0 z-[150] flex items-center justify-center" data-tablet-theme={theme}>
+      <button
+        type="button"
+        aria-label={t.common.close}
+        className="tablet-themed-modal-backdrop absolute inset-0"
+        onClick={() => onOpenChange(false)}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tablet-item-modal-title"
+        className="tablet-item-modal"
+        style={buildTabletShellCssVars(uiScale, textScale, theme)}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
-          <div className="relative aspect-[16/10] max-h-[min(32dvh,200px)] w-full shrink-0 self-stretch bg-slate-100 md:aspect-auto md:max-h-none md:w-[40%]">
-            {imageSrc ? (
-              <Image
-                src={imageSrc}
-                alt={displayName}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 40vw"
-                crossOrigin="anonymous"
-                priority
+        <div className="tablet-item-modal-panel">
+          <div className="tablet-item-modal-media">
+            <div className="tablet-item-modal-image-wrap">
+              {imageSrc ? (
+                <Image
+                  src={imageSrc}
+                  alt={displayName}
+                  fill
+                  className="tablet-item-modal-image"
+                  sizes="(max-width: 900px) 92vw, 42vw"
+                  crossOrigin="anonymous"
+                  priority
+                />
+              ) : (
+                <div className="tablet-item-modal-image-placeholder">
+                  <ImagePlus className="h-12 w-12" aria-hidden />
+                </div>
+              )}
+              {badges.includes("BEST") ? <BestRibbon /> : null}
+              <BadgePills badges={badges} />
+              <SpicyMenuBadge
+                level={normalizeSpicyLevel(item.spicyLevel, item.spicy)}
+                className="!right-3 !left-auto !top-3"
               />
-            ) : (
-              <div className="flex h-full min-h-[120px] items-center justify-center text-slate-400 md:min-h-full">
-                <ImagePlus className="h-12 w-12 md:h-16 md:w-16" aria-hidden />
-              </div>
-            )}
-            {badges.includes("BEST") ? <BestRibbon /> : null}
-            <BadgePills badges={badges} />
-            <SpicyMenuBadge
-              level={normalizeSpicyLevel(item.spicyLevel, item.spicy)}
-              className="!right-3 !left-auto !top-3 md:!right-4 md:!top-4"
-            />
+            </div>
           </div>
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 md:px-6 md:py-4">
-              <DialogTitle className="text-xl font-extrabold leading-tight text-slate-900 md:text-2xl">
+          <div className="tablet-item-modal-content">
+            <div className="tablet-item-modal-scroll">
+              <h2 id="tablet-item-modal-title" className="tablet-item-modal-title">
                 {displayName}
-              </DialogTitle>
+              </h2>
               {description ? (
-                <p className="mt-2 text-sm leading-relaxed text-slate-600 md:text-[15px]">
-                  {description}
-                </p>
+                <p className="tablet-item-modal-description">{description}</p>
               ) : null}
 
               {needsPortionPicker ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                <div className="tablet-item-modal-section space-y-2">
+                  <p className="tablet-item-modal-section-label">
                     {t.tablet.selectPortion}
                   </p>
-                  <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="tablet-item-modal-options">
                     {sizes.map((size, idx) => {
                       const isSelected =
                         selectedSize?.labelMn === size.labelMn &&
@@ -227,18 +249,16 @@ function MenuItemPortionModal({
                           type="button"
                           onClick={() => setSelectedSize(size)}
                           className={cn(
-                            "flex min-h-[3.25rem] touch-manipulation flex-col items-center justify-center rounded-lg border-2 px-3 py-2 text-center transition active:scale-[0.99]",
-                            isSelected
-                              ? "border-red-600 bg-red-50 text-red-700 shadow-sm ring-1 ring-red-200"
-                              : "border-slate-200 bg-white text-slate-800 hover:border-red-300 hover:bg-red-50/40"
+                            "tablet-item-modal-option",
+                            isSelected && "is-selected"
                           )}
                         >
-                          <span className="text-sm font-bold leading-tight md:text-base">
+                          <span className="tablet-item-modal-option-label">
                             {label}
                           </span>
                           <span
                             className={cn(
-                              "mt-0.5 text-base font-extrabold tabular-nums md:text-lg",
+                              "tablet-item-modal-option-price",
                               isSelected ? "text-red-600" : "text-slate-900"
                             )}
                           >
@@ -252,19 +272,16 @@ function MenuItemPortionModal({
               ) : null}
 
               {toppings.length > 0 ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                <div className="tablet-item-modal-section space-y-2">
+                  <p className="tablet-item-modal-section-label">
                     {t.tablet.extraOptions}
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="tablet-item-modal-toppings">
                     {toppings.map((topping, idx) => {
                       const label = resolveToppingLabel(topping, locale)
                       if (!label) return null
                       return (
-                        <span
-                          key={`${label}-${idx}`}
-                          className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 md:text-sm"
-                        >
+                        <span key={`${label}-${idx}`} className="tablet-item-modal-topping">
                           {label}
                           {typeof topping.price === "number" && topping.price > 0
                             ? ` +${formatPrice(topping.price)}`
@@ -277,51 +294,49 @@ function MenuItemPortionModal({
               ) : null}
 
               {canShowQuantity ? (
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                <div className="tablet-item-modal-section space-y-2">
+                  <p className="tablet-item-modal-section-label">
                     {t.tablet.quantity}
                   </p>
-                  <div className="inline-flex min-h-11 items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                  <div className="tablet-item-modal-qty-row">
                     <button
                       type="button"
                       aria-label={t.tablet.decreaseQty}
                       disabled={quantity <= 1}
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 disabled:opacity-40 active:scale-95"
+                      className="tablet-item-modal-qty-btn"
                     >
-                      <Minus className="h-5 w-5" />
+                      <Minus aria-hidden />
                     </button>
-                    <span className="min-w-[2rem] text-center text-2xl font-extrabold tabular-nums text-slate-900">
-                      {quantity}
-                    </span>
+                    <span className="tablet-item-modal-qty-value">{quantity}</span>
                     <button
                       type="button"
                       aria-label={t.tablet.increaseQty}
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="flex h-10 w-10 shrink-0 touch-manipulation items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-100 active:scale-95"
+                      className="tablet-item-modal-qty-btn"
                     >
-                      <Plus className="h-5 w-5" />
+                      <Plus aria-hidden />
                     </button>
                   </div>
                 </div>
               ) : null}
             </div>
 
-            <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.08)] md:px-6">
-              <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <footer className="tablet-item-modal-footer">
+              <div className="tablet-item-modal-footer-inner">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                  <p className="tablet-item-modal-total-label">
                     {t.tablet.selectedTotal}
                   </p>
                   <p
                     className={cn(
-                      "text-xl font-extrabold tabular-nums md:text-2xl",
-                      isPortionUnselected ? "text-slate-400" : "text-red-600"
+                      "tablet-item-modal-total-value",
+                      isPortionUnselected ? "is-muted" : "is-active"
                     )}
                   >
                     {isPortionUnselected ? formatPrice(0) : formatPrice(lineTotal)}
                   </p>
-                  <p className="min-h-[1rem] truncate text-xs text-slate-500">
+                  <p className="tablet-item-modal-total-hint">
                     {isPortionUnselected
                       ? t.tablet.noPortionSelected
                       : activeSize && needsPortionPicker
@@ -329,34 +344,34 @@ function MenuItemPortionModal({
                             resolveSizeLabel(activeSize, locale),
                             quantity
                           )
-                        : null}
+                        : "\u00a0"}
                   </p>
                 </div>
 
-                <div className="grid shrink-0 grid-cols-2 gap-2 sm:flex">
-                  <Button
+                <div className="tablet-item-modal-actions">
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => onOpenChange(false)}
-                    className="min-h-11 rounded-xl border-slate-300 px-4 text-sm font-semibold touch-manipulation md:px-5 md:text-base"
+                    className="tablet-item-modal-btn tablet-item-modal-btn-secondary"
                   >
                     {t.common.close}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     type="button"
                     disabled={!canShowQuantity}
                     onClick={handleAdd}
-                    className="min-h-11 rounded-xl bg-red-600 px-4 text-sm font-bold text-white hover:bg-red-700 disabled:bg-slate-300 touch-manipulation md:px-5 md:text-base"
+                    className="tablet-item-modal-btn tablet-item-modal-btn-primary"
                   >
                     {t.tablet.addToCart}
-                  </Button>
+                  </button>
                 </div>
               </div>
             </footer>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>,
+    document.body
   )
 }
 

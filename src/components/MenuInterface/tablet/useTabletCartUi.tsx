@@ -3,6 +3,8 @@
 import React from "react"
 import type { CheckOutItems } from "@/store/reducer/checkout"
 
+import type { TabletThemeId } from "@/utils/tabletTheme"
+
 export type TabletCartContextValue = {
   open: boolean
   openCart: () => void
@@ -13,6 +15,9 @@ export type TabletCartContextValue = {
   recentLineKey: string | null
   notifyItemAdded: (line: CheckOutItems, displayName: string) => void
   openOrderConfirm: () => void
+  uiScale: number
+  textScale: number
+  theme: TabletThemeId
 }
 
 export const TabletCartContext =

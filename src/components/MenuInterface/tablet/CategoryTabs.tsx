@@ -25,10 +25,23 @@ function CategoryTabs({
   const activeButtonRef = React.useRef<HTMLButtonElement>(null)
 
   React.useEffect(() => {
-    activeButtonRef.current?.scrollIntoView({
-      inline: "center",
+    const el = activeButtonRef.current
+    if (!el) return
+
+    const scroller = el.parentElement
+    if (!scroller) return
+
+    const scrollerRect = scroller.getBoundingClientRect()
+    const elRect = el.getBoundingClientRect()
+
+    if (elRect.left >= scrollerRect.left && elRect.right <= scrollerRect.right) {
+      return
+    }
+
+    el.scrollIntoView({
+      inline: "nearest",
       block: "nearest",
-      behavior: "smooth",
+      behavior: "auto",
     })
   }, [active])
 
@@ -36,7 +49,7 @@ function CategoryTabs({
 
   if (variant === "torder") {
     return (
-      <div className="shrink-0 bg-black">
+      <div className="tablet-mobile-category-bar shrink-0">
         <div className="flex gap-1 overflow-x-auto px-2 py-2 scrollbar-hide touch-pan-x">
           {categories.map((category) => {
             const isActive = category === active
@@ -48,22 +61,22 @@ function CategoryTabs({
                 type="button"
                 onClick={() => onChange(category)}
                 className={cn(
-                  "relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 text-sm font-bold touch-manipulation transition active:scale-95",
+                  "tablet-category-tab tablet-font-sidebar relative flex shrink-0 items-center gap-1.5 px-4 py-2.5 font-bold touch-manipulation transition active:scale-95",
                   isActive
-                    ? "rounded-r-full bg-white pr-5 text-black"
-                    : "text-white"
+                    ? "tablet-sidebar-category-active rounded-r-full pr-5"
+                    : "tablet-sidebar-category-inactive"
                 )}
               >
                 {isActive ? (
                   <span
-                    className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full bg-[#e53935]"
+                    className="tablet-category-accent-bar absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-full"
                     aria-hidden
                   />
                 ) : null}
                 <CategoryIcon
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    isActive ? "text-black" : "text-white"
+                    isActive ? "" : "text-[var(--tablet-sidebar-text)]"
                   )}
                   aria-hidden
                 />

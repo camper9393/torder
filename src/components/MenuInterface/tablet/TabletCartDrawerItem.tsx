@@ -78,78 +78,79 @@ function TabletCartDrawerItem({ item, isRecent = false }: TabletCartDrawerItemPr
   return (
     <li
       className={cn(
-        "rounded-xl border bg-white p-2.5",
-        isRecent ? "border-red-200 bg-red-50/40" : "border-slate-200"
+        "tablet-cart-drawer-item rounded-xl",
+        isRecent ? "is-recent" : ""
       )}
     >
       {isRecent ? (
-        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-red-600">
+        <p className="tablet-cart-drawer-recent-badge font-bold uppercase tracking-wide" style={{ color: "var(--tablet-accent)" }}>
           {t.tablet.recentlyAdded}
         </p>
       ) : null}
 
-      <div className="flex gap-2.5">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+      <div className="tablet-cart-drawer-item-top">
+        <div className="tablet-cart-drawer-item-image relative shrink-0 overflow-hidden rounded-lg">
           {imageSrc ? (
             <Image
               src={imageSrc}
               alt={displayName}
               fill
               className="object-cover"
-              sizes="56px"
+              sizes="76px"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-slate-400">
-              <ImagePlus className="h-5 w-5" aria-hidden />
+            <div className="tablet-themed-muted flex h-full w-full items-center justify-center">
+              <ImagePlus className="h-6 w-6" aria-hidden />
             </div>
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold text-slate-900">
-            {displayName}
-          </p>
+        <div className="tablet-cart-drawer-item-heading">
+          <p className="tablet-cart-drawer-item-name">{displayName}</p>
           {portionLabel ? (
-            <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+            <p className="tablet-cart-drawer-item-portion tablet-themed-muted font-medium">
               {portionLabel}
             </p>
           ) : null}
-
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={handleDecrease}
-                aria-label={t.tablet.decreaseQty}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 active:scale-95 touch-manipulation"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums text-slate-900">
-                {item.itemCount}
-              </span>
-              <button
-                type="button"
-                onClick={handleIncrease}
-                aria-label={t.tablet.increaseQty}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 active:scale-95 touch-manipulation"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleRemove}
-                aria-label={t.tablet.removeItem}
-                className="ml-0.5 flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100 active:scale-95 touch-manipulation"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-            <span className="shrink-0 text-sm font-extrabold tabular-nums text-slate-900">
-              {formatPrice(lineTotal)}
-            </span>
-          </div>
         </div>
+      </div>
+
+      <div className="tablet-cart-drawer-item-controls">
+        <div className="tablet-cart-drawer-item-controls-inner">
+          <button
+            type="button"
+            onClick={handleDecrease}
+            aria-label={t.tablet.decreaseQty}
+            className="tablet-cart-drawer-qty-btn flex items-center justify-center rounded-lg transition touch-manipulation"
+          >
+            <Minus aria-hidden />
+          </button>
+          <span className="tablet-cart-drawer-qty-value text-center tabular-nums">
+            {item.itemCount}
+          </span>
+          <button
+            type="button"
+            onClick={handleIncrease}
+            aria-label={t.tablet.increaseQty}
+            className="tablet-cart-drawer-qty-btn flex items-center justify-center rounded-lg transition touch-manipulation"
+          >
+            <Plus aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={handleRemove}
+            aria-label={t.tablet.removeItem}
+            className="tablet-cart-drawer-delete-btn flex items-center justify-center rounded-lg transition touch-manipulation"
+          >
+            <Trash2 aria-hidden />
+          </button>
+        </div>
+      </div>
+
+      <div className="tablet-cart-drawer-item-price-row">
+        <span className="tablet-cart-drawer-item-line-price tabular-nums">
+          {formatPrice(lineTotal)}
+        </span>
       </div>
     </li>
   )

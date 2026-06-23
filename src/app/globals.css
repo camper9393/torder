@@ -2,6 +2,9 @@
 @import 'swiper/css/navigation';
 @import 'swiper/css/pagination';
 @import 'swiper/css/scrollbar';
+@import "../components/MenuInterface/tablet/tablet-menu-shell.css";
+@import "../components/MenuInterface/tablet/tablet-cart-drawer.css";
+@import "../components/MenuInterface/tablet/tablet-item-modal.css";
 
 @tailwind base;
 @tailwind components;

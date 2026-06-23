@@ -17,10 +17,6 @@ import toast from "react-hot-toast"
 import LanguageSwitcher from "@/components/common/LanguageSwitcher"
 import { useLocale } from "@/context/LocaleContext"
 import { useWaiterCallSubmit } from "@/hooks/useWaiterCallSubmit"
-import {
-  TORDER_BOTTOM_BAR_HEIGHT_PX,
-  TORDER_SIDEBAR_WIDTH_PX,
-} from "./tabletUi"
 import { useTabletCartUiOptional } from "./useTabletCartUi"
 
 type TabletBottomNavProps = {
@@ -67,34 +63,30 @@ function TabletBottomNav({
   }
 
   const torderSecondaryBtn =
-    "flex min-h-12 items-center gap-2 rounded-xl border border-neutral-300 bg-white px-4 text-sm font-semibold text-black touch-manipulation transition active:scale-[0.98] hover:bg-neutral-50"
+    "tablet-bottom-nav-btn tablet-font-button tablet-bottom-nav-btn-secondary flex items-center gap-2 rounded-xl px-4 font-semibold touch-manipulation transition"
 
   const torderPrimaryBtn =
-    "flex min-h-12 min-w-[9.5rem] items-center justify-center gap-2 rounded-xl bg-black px-5 text-sm font-bold text-white touch-manipulation transition active:scale-[0.98] hover:bg-neutral-900 sm:min-w-[10.5rem]"
+    "tablet-bottom-nav-btn tablet-font-button tablet-bottom-nav-btn-primary flex min-w-[9.5rem] items-center justify-center gap-2 rounded-xl px-5 font-bold touch-manipulation transition sm:min-w-[10.5rem]"
 
   if (variant === "torder") {
     return (
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white md:left-[var(--torder-sidebar-w)]"
-        style={
-          {
-            "--torder-sidebar-w": `${TORDER_SIDEBAR_WIDTH_PX}px`,
-            height: TORDER_BOTTOM_BAR_HEIGHT_PX,
-            paddingBottom: "env(safe-area-inset-bottom, 0px)",
-          } as React.CSSProperties
-        }
+        className="tablet-menu-bottom-nav"
+        style={{
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
       >
-        <div className="flex h-full items-center justify-between gap-3 px-4 md:px-6">
+        <div className="flex h-full min-h-0 items-center justify-between gap-3 px-4 md:px-6">
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className={torderSecondaryBtn}
+              className={cn(torderSecondaryBtn, "tablet-bottom-nav-btn")}
               onClick={() => toast(t.tablet.noticeMsg, { icon: "🎁" })}
             >
-              <Gift className="h-4 w-4 shrink-0" aria-hidden />
+              <Gift className="tablet-bottom-nav-icon shrink-0" aria-hidden />
               <span className="hidden sm:inline">{t.tablet.event}</span>
             </button>
-            <div className={cn(torderSecondaryBtn, "px-3")}>
+            <div className={cn(torderSecondaryBtn, "tablet-bottom-nav-btn px-3")}>
               <LanguageSwitcher compact className="!gap-1.5" />
             </div>
           </div>
@@ -102,10 +94,10 @@ function TabletBottomNav({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className={torderPrimaryBtn}
+              className={cn(torderPrimaryBtn, "tablet-bottom-nav-btn")}
               onClick={() => cartUi?.openHistory()}
             >
-              <ClipboardList className="h-4 w-4 shrink-0" aria-hidden />
+              <ClipboardList className="tablet-bottom-nav-icon shrink-0" aria-hidden />
               <span className="truncate">{t.tablet.orderHistoryTitle}</span>
             </button>
             <button
@@ -117,9 +109,9 @@ function TabletBottomNav({
                 }
                 router.push(active === "checkout" ? menuPath : checkoutPath)
               }}
-              className={torderPrimaryBtn}
+              className={cn(torderPrimaryBtn, "tablet-bottom-nav-btn")}
             >
-              <ShoppingBag className="h-4 w-4 shrink-0" aria-hidden />
+              <ShoppingBag className="tablet-bottom-nav-icon shrink-0" aria-hidden />
               <span className="truncate">
                 {cartCount > 0
                   ? t.tablet.cartTitleWithCount(

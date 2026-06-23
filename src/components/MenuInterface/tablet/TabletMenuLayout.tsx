@@ -8,15 +8,11 @@ import TabletMobileOrderBar from "./TabletMobileOrderBar"
 import TabletCategorySidebar, {
   SidebarBrandHeader,
 } from "./TabletCategorySidebar"
-import TabletContentHeader from "./TabletContentHeader"
+import TabletSectionHeader from "./TabletSectionHeader"
 import { TOrderMenuShell } from "./TOrderMenuShell"
-import {
-  MOBILE_ORDER_BAR_HEIGHT_PX,
-  sortMenuItems,
-  SortOption,
-  TORDER_BOTTOM_BAR_HEIGHT_PX,
-} from "./tabletUi"
+import { sortMenuItems, SortOption } from "./tabletUi"
 import { useContinuousCategoryScroll } from "./useContinuousCategoryScroll"
+import { useTabletMenuPageLock } from "./useTabletMenuPageLock"
 import { IMenu } from "@/types/menu"
 import { useLocale } from "@/context/LocaleContext"
 import TabletCartProvider from "./TabletCartProvider"
@@ -34,6 +30,9 @@ type TabletMenuLayoutProps = {
   sectionIcons?: Record<string, string>
   sectionMeta?: SectionMetaMap
   loading: boolean
+  uiScale?: number
+  textScale?: number
+  theme?: TabletThemeId
 }
 
 function categorySectionId(category: string): string {
@@ -48,9 +47,14 @@ function TabletMenuLayout({
   sectionIcons = {},
   sectionMeta = {},
   loading,
+  uiScale,
+  textScale,
+  theme,
 }: TabletMenuLayoutProps) {
   const { t, locale } = useLocale()
   const [sort, setSort] = React.useState<SortOption>("default")
+
+  useTabletMenuPageLock()
 
   const categories = React.useMemo(() => {
     const seen = new Set<string>()
@@ -96,17 +100,14 @@ function TabletMenuLayout({
   const { scrollRef, activeCategory, setSectionRef, scrollToCategory } =
     useContinuousCategoryScroll({ categories: sectionCategories })
 
-  const activeCategoryLabel = activeCategory
-    ? getCategoryLabel(activeCategory)
-    : t.nav.menu
-
-  const bottomPadDesktop = `calc(${TORDER_BOTTOM_BAR_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + 16px)`
-  const bottomPadMobile = `calc(${TORDER_BOTTOM_BAR_HEIGHT_PX}px + ${MOBILE_ORDER_BAR_HEIGHT_PX}px + env(safe-area-inset-bottom, 0px) + 16px)`
-
   return (
-    <TabletCartProvider merchantId={merchantId}>
-    <TOrderMenuShell className="flex h-[100dvh] flex-col overflow-hidden">
-      <div className="flex min-h-0 flex-1">
+    <TabletCartProvider
+      merchantId={merchantId}
+      uiScale={uiScale}
+      textScale={textScale}
+      theme={theme}
+    >
+      <TOrderMenuShell uiScale={uiScale} textScale={textScale} theme={theme}>
         <TabletCategorySidebar
           restaurantName={restaurantName}
           categories={sectionCategories}
@@ -118,9 +119,12 @@ function TabletMenuLayout({
           tableName={tableName}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="shrink-0 bg-black md:hidden">
-            <SidebarBrandHeader restaurantName={restaurantName} />
+        <div className="tablet-menu-content">
+          <div className="tablet-mobile-category-bar shrink-0 md:hidden">
+            <SidebarBrandHeader
+              restaurantName={restaurantName}
+              tableName={tableName}
+            />
             <CategoryTabs
               categories={sectionCategories}
               categoryIcons={sectionIcons}
@@ -131,29 +135,16 @@ function TabletMenuLayout({
             />
           </div>
 
-          <TabletContentHeader
-            category={activeCategoryLabel}
-            tableName={tableName}
-            sort={sort}
-            onSortChange={setSort}
-          />
-
           <main
             ref={scrollRef}
-            className="min-h-0 flex-1 overflow-y-auto bg-neutral-50 px-3 py-1.5 md:px-5 md:py-2 max-md:pb-[var(--menu-scroll-pad-mobile)] md:pb-[var(--menu-scroll-pad-desktop)]"
-            style={
-              {
-                "--menu-scroll-pad-mobile": bottomPadMobile,
-                "--menu-scroll-pad-desktop": bottomPadDesktop,
-              } as React.CSSProperties
-            }
+            className="tablet-menu-scroll tablet-themed-scroll"
           >
             {loading ? (
-              <p className="py-16 text-center text-neutral-400">
+              <p className="tablet-themed-muted py-16 text-center">
                 {t.tablet.loadingMenu}
               </p>
             ) : groupedSections.length === 0 ? (
-              <div className="py-16 text-center text-neutral-400">
+              <div className="tablet-themed-muted py-16 text-center">
                 {t.tablet.noCategoryItems}
               </div>
             ) : (
@@ -166,13 +157,13 @@ function TabletMenuLayout({
                     data-category={section.category}
                     aria-labelledby={`${categorySectionId(section.category)}-title`}
                   >
-                    <h2
+                    <TabletSectionHeader
                       id={`${categorySectionId(section.category)}-title`}
-                      className="mb-2.5 text-lg font-extrabold text-[#e53935] md:mb-3 md:text-xl"
-                    >
-                      {getCategoryLabel(section.category)}
-                    </h2>
-                    <div className="grid grid-cols-2 gap-x-2.5 gap-y-2 sm:grid-cols-2 md:grid-cols-3 md:gap-x-3.5 md:gap-y-2.5 lg:grid-cols-3">
+                      label={getCategoryLabel(section.category)}
+                      itemCount={section.items.length}
+                      iconName={sectionIcons[section.category]}
+                    />
+                    <div className="tablet-menu-grid">
                       {section.items.map((item, index) => (
                         <MenuGridItem
                           key={String(item._id)}
@@ -187,19 +178,16 @@ function TabletMenuLayout({
               </div>
             )}
           </main>
+
+          <TabletMobileOrderBar merchantId={merchantId} variant="torder" />
+
+          <TabletBottomNav
+            merchantId={merchantId}
+            active="menu"
+            variant="torder"
+          />
         </div>
-
-      </div>
-
-      <TabletMobileOrderBar merchantId={merchantId} variant="torder" />
-
-      <TabletBottomNav
-        merchantId={merchantId}
-        active="menu"
-        variant="torder"
-      />
-
-    </TOrderMenuShell>
+      </TOrderMenuShell>
     </TabletCartProvider>
   )
 }

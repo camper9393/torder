@@ -32,7 +32,17 @@ export type UpdateRestaurantInput = Partial<
     | "ownerName"
     | "email"
     | "phone"
+    | "phone2"
     | "address"
+    | "englishName"
+    | "logoUrl"
+    | "businessType"
+    | "description"
+    | "detailDescription"
+    | "website"
+    | "facebook"
+    | "instagram"
+    | "googleMapLink"
     | "plan"
     | "maxTables"
     | "maxUsers"
@@ -193,6 +203,36 @@ export async function updateRestaurant(
   if (typeof updates.address === "string") {
     updates.address = updates.address.trim();
   }
+  if (typeof updates.phone2 === "string") {
+    updates.phone2 = updates.phone2.trim();
+  }
+  if (typeof updates.englishName === "string") {
+    updates.englishName = updates.englishName.trim();
+  }
+  if (typeof updates.logoUrl === "string") {
+    updates.logoUrl = updates.logoUrl.trim();
+  }
+  if (typeof updates.businessType === "string") {
+    updates.businessType = updates.businessType.trim();
+  }
+  if (typeof updates.description === "string") {
+    updates.description = updates.description.trim();
+  }
+  if (typeof updates.detailDescription === "string") {
+    updates.detailDescription = updates.detailDescription.trim();
+  }
+  if (typeof updates.website === "string") {
+    updates.website = updates.website.trim();
+  }
+  if (typeof updates.facebook === "string") {
+    updates.facebook = updates.facebook.trim();
+  }
+  if (typeof updates.instagram === "string") {
+    updates.instagram = updates.instagram.trim();
+  }
+  if (typeof updates.googleMapLink === "string") {
+    updates.googleMapLink = updates.googleMapLink.trim();
+  }
 
   if (updates.plan && PLAN_LIMITS[updates.plan]) {
     const limits = PLAN_LIMITS[updates.plan];
@@ -200,10 +240,12 @@ export async function updateRestaurant(
     updates.maxUsers = updates.maxUsers ?? limits.maxUsers;
   }
 
-  return Restaurant.findByIdAndUpdate(id, updates, {
+  const updated = await Restaurant.findByIdAndUpdate(id, updates, {
     new: true,
     runValidators: true,
   });
+
+  return updated;
 }
 
 export async function activateRestaurant(

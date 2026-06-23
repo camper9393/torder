@@ -174,6 +174,10 @@ export const GET_ADMIN_SETTINGS_SUBSCRIPTION: string =
 export const GET_ADMIN_SETTINGS_AUDIT: string = "/admin/settings/audit"
 export const GET_ADMIN_SETTINGS_AUDIT_EXPORT: string =
   "/admin/settings/audit/export"
+export const adminSettingsTabletDisplayPath = (merchantId: string) =>
+  `/admin/settings/tablet-display/${merchantId}`
+export const GET_ADMIN_SETTINGS_TABLET_DISPLAY = adminSettingsTabletDisplayPath
+export const PATCH_ADMIN_SETTINGS_TABLET_DISPLAY = adminSettingsTabletDisplayPath
 
 // inventory
 export const GET_INVENTORY_DASHBOARD: string = "/inventory/dashboard"

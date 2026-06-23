@@ -1,5 +1,10 @@
 import { getCurrentUser } from "@/lib/auth";
 import mongoServer from "@/config/mongoConfig";
+import {
+  resolveCurrentMerchantIdForUser,
+  resolveCurrentMerchantScope,
+  resolveTabletDisplayScopeFromMerchantParam,
+} from "@/lib/resolveCurrentMerchantId";
 import { Permission, userHasPermission, type PermissionKey } from "@/lib/permissions";
 import { IUser, UserRole } from "@/model/user";
 import { isValidObjectId, Types } from "mongoose";
@@ -7,7 +12,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 
 export function canAccessSettings(user: Pick<IUser, "role" | "permissions">) {
-  if (user.role === UserRole.PLATFORM_OWNER) return true;
+  if (
+    user.role === UserRole.PLATFORM_OWNER ||
+    user.role === UserRole.RESTAURANT_OWNER
+  ) {
+    return true;
+  }
   return userHasPermission(user, Permission.SETTINGS);
 }
 
@@ -178,6 +188,78 @@ export async function resolveSettingsRestaurantIdFromRequest(
       : null;
 
   return resolveSettingsRestaurantId(actor, queryId);
+}
+
+export async function resolveTabletDisplayRestaurantIdFromRequest(
+  req: NextRequest,
+  actor: IUser
+): Promise<Types.ObjectId | NextResponse> {
+  const scope = await resolveCurrentMerchantScope(req, actor);
+  if (!scope) {
+    const queryMerchantId = req.nextUrl.searchParams.get("merchantId");
+    const userMerchantId = await resolveCurrentMerchantIdForUser(actor);
+
+    if (
+      queryMerchantId &&
+      userMerchantId &&
+      queryMerchantId !== String(userMerchantId)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Энэ рестораны тохиргоонд хандах эрхгүй",
+        },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Restaurant ID олдсонгүй. Дахин нэвтэрнэ үү.",
+      },
+      { status: 400 }
+    );
+  }
+
+  return scope.restaurantId;
+}
+
+export async function resolveTabletDisplayRestaurantIdFromMerchantParam(
+  actor: IUser,
+  merchantIdParam: string
+): Promise<Types.ObjectId | NextResponse> {
+  const scope = await resolveTabletDisplayScopeFromMerchantParam(
+    actor,
+    merchantIdParam
+  );
+
+  if (!scope) {
+    const userMerchantId = await resolveCurrentMerchantIdForUser(actor);
+    if (
+      merchantIdParam &&
+      userMerchantId &&
+      merchantIdParam !== String(userMerchantId)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Энэ рестораны тохиргоонд хандах эрхгүй",
+        },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Restaurant ID олдсонгүй. Дахин нэвтэрнэ үү.",
+      },
+      { status: 400 }
+    );
+  }
+
+  return scope.restaurantId;
 }
 
 export async function getSettingsLayoutContext(): Promise<{

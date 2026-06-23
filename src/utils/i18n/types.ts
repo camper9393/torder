@@ -95,6 +95,7 @@ export type Messages = {
     confirm: string
     tableShort: string
     tableAria: (tableNumber: string) => string
+    categoryItemCount: (count: number) => string
     historyEmpty: string
     historyTotalLabel: string
     piecesCount: (count: number) => string

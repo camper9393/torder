@@ -1,66 +1,74 @@
 import mongoServer from "@/config/mongoConfig";
 import { CompanySettings } from "@/model/companySettings";
 import { Restaurant } from "@/model/restaurant";
-import { serializeCompanySettings } from "@/utils/settingsSerialize";
+import {
+  COMPANY_SETTINGS_FIELD_KEYS,
+  companyInputToRestaurantUpdate,
+  legacyCompanyToRestaurantPatch,
+  pickCompanySettingsInput,
+  restaurantToCompanyDto,
+} from "@/utils/restaurantProfileMap";
 import { Types } from "mongoose";
 
-const COMPANY_FIELDS = [
-  "nameMn",
-  "nameEn",
-  "logoUrl",
-  "businessType",
-  "introduction",
-  "description",
-  "phone1",
-  "phone2",
-  "email",
-  "website",
-  "facebook",
-  "instagram",
-  "address",
-  "googleMapLink",
-] as const;
-
-export async function getOrCreateCompanySettings(restaurantId: Types.ObjectId) {
+async function loadRestaurantProfileDoc(restaurantId: Types.ObjectId) {
   await mongoServer();
 
-  let doc = await CompanySettings.findOne({ restaurantId }).lean();
-  if (!doc) {
-    const restaurant = await Restaurant.findById(restaurantId)
-      .select("name email phone address")
-      .lean();
-    const created = await CompanySettings.create({
-      restaurantId,
-      nameMn: restaurant?.name ?? "",
-      email: restaurant?.email ?? "",
-      phone1: restaurant?.phone ?? "",
-      address: restaurant?.address ?? "",
-    });
-    doc = created.toObject();
+  let restaurant = await Restaurant.findById(restaurantId).lean();
+  if (!restaurant) {
+    return null;
   }
 
-  return serializeCompanySettings(doc);
+  const legacy = await CompanySettings.findOne({ restaurantId }).lean();
+  if (legacy) {
+    const patch = legacyCompanyToRestaurantPatch(restaurant, legacy);
+    if (Object.keys(patch).length > 0) {
+      restaurant = await Restaurant.findByIdAndUpdate(
+        restaurantId,
+        { $set: patch },
+        { new: true }
+      ).lean();
+    }
+  }
+
+  return restaurant;
+}
+
+export async function getOrCreateCompanySettings(restaurantId: Types.ObjectId) {
+  const restaurant = await loadRestaurantProfileDoc(restaurantId);
+  if (!restaurant) {
+    throw new Error("Ресторан олдсонгүй");
+  }
+
+  return restaurantToCompanyDto(restaurant);
 }
 
 export async function updateCompanySettings(
   restaurantId: Types.ObjectId,
-  input: Partial<Record<(typeof COMPANY_FIELDS)[number], string>>
+  input: Record<string, unknown>
 ) {
   await mongoServer();
-  await getOrCreateCompanySettings(restaurantId);
 
-  const update: Record<string, string> = {};
-  for (const key of COMPANY_FIELDS) {
-    if (typeof input[key] === "string") {
-      update[key] = input[key]!.trim();
-    }
+  const picked = pickCompanySettingsInput(input);
+  const hasFieldUpdate = COMPANY_SETTINGS_FIELD_KEYS.some(
+    (key) => typeof picked[key] === "string"
+  );
+
+  if (!hasFieldUpdate) {
+    throw new Error("Хадгалах өөрчлөлт олдсонгүй");
   }
 
-  const doc = await CompanySettings.findOneAndUpdate(
-    { restaurantId },
-    { $set: update },
-    { new: true }
-  ).lean();
+  const update = companyInputToRestaurantUpdate(picked);
+  if (Object.keys(update).length === 0) {
+    throw new Error("Хадгалах өөрчлөлт олдсонгүй");
+  }
 
-  return doc ? serializeCompanySettings(doc) : null;
+  const restaurant = await Restaurant.findById(restaurantId);
+  if (!restaurant) {
+    throw new Error("Ресторан олдсонгүй");
+  }
+
+  restaurant.set(update);
+  await restaurant.save();
+
+  return restaurantToCompanyDto(restaurant.toObject());
 }

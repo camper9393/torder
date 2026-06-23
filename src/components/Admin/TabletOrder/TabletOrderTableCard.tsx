@@ -20,7 +20,7 @@ export default function TabletOrderTableCard({
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(menuLink)
-      toast.success("Холбоос хуулагдлаа")
+      toast.success("Таблет холбоос хуулагдлаа")
     } catch {
       toast.error("Холбоос хуулахад алдаа гарлаа")
     }
@@ -70,21 +70,21 @@ export default function TabletOrderTableCard({
           type="button"
           size="sm"
           variant="outline"
-          className="min-w-[5.5rem] flex-1"
+          className="min-h-11 min-w-0 flex-1"
           onClick={handleDownload}
         >
           <Download className="mr-1 h-4 w-4" aria-hidden />
-          QR татах
+          Download QR
         </Button>
         <Button
           type="button"
           size="sm"
           variant="outline"
-          className="min-w-[5.5rem] flex-1"
-          onClick={handleCopy}
+          className="min-h-11 min-w-0 flex-1"
+          onClick={() => void handleCopy()}
         >
           <Copy className="mr-1 h-4 w-4" aria-hidden />
-          Холбоос хуулах
+          Copy tablet link
         </Button>
       </div>
     </article>

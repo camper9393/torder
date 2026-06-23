@@ -25,20 +25,15 @@ export function SettingsRestaurantProvider({
 }) {
   const [selectedRestaurantId, setSelectedRestaurantIdState] = React.useState<
     string | null
-  >(() => {
-    if (typeof window === "undefined" || !isPlatformOwner) {
-      return null;
-    }
-    return window.localStorage.getItem(STORAGE_KEY);
-  });
+  >(null);
 
   React.useEffect(() => {
     if (!isPlatformOwner) return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored && stored !== selectedRestaurantId) {
+    if (stored) {
       setSelectedRestaurantIdState(stored);
     }
-  }, [isPlatformOwner, selectedRestaurantId]);
+  }, [isPlatformOwner]);
 
   const setSelectedRestaurantId = React.useCallback((id: string) => {
     setSelectedRestaurantIdState(id);

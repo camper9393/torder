@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import toast from "react-hot-toast";
+import { notifyRestaurantInfoUpdated } from "@/utils/restaurantInfoRefresh";
 import { Pencil, RefreshCw } from "lucide-react";
 
 import SettingsFormActions from "@/components/Admin/Settings/SettingsFormActions";
@@ -14,6 +14,7 @@ import {
   PATCH_ADMIN_SETTINGS_COMPANY,
 } from "@/utils/APIConstant";
 import { getApi, patchApi } from "@/utils/common";
+import toast from "react-hot-toast";
 
 type CompanyData = {
   nameMn: string;
@@ -196,6 +197,7 @@ export default function CompanySettingsSection() {
     }
     setIsEditing(false);
     toast.success("Амжилттай хадгаллаа");
+    notifyRestaurantInfoUpdated();
   };
 
   if (loading) {

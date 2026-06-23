@@ -8,7 +8,17 @@ export interface Restaurant {
   ownerName: string;
   email: string;
   phone: string;
+  phone2: string;
   address: string;
+  englishName: string;
+  logoUrl: string;
+  businessType: string;
+  description: string;
+  detailDescription: string;
+  website: string;
+  facebook: string;
+  instagram: string;
+  googleMapLink: string;
   plan: RestaurantPlan;
   subscriptionStatus: SubscriptionStatus;
   startDate: string;

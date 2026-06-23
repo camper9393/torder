@@ -1,15 +1,16 @@
 "use client"
 
 import React from "react"
-import Image from "next/image"
 import { Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLocale } from "@/context/LocaleContext"
 import { useWaiterCallSubmit } from "@/hooks/useWaiterCallSubmit"
-import { PAPER_MENU_ASSETS } from "./paperMenuAssets"
 import { getCategoryLucideIcon } from "@/utils/categoryIcons"
 import type { CategoryIconName } from "@/utils/categoryIcons"
-import { TORDER_SIDEBAR_WIDTH_PX } from "./tabletUi"
+import {
+  displayTableNumber,
+  hasDisplayableTableName,
+} from "@/utils/table"
 
 type TabletCategorySidebarProps = {
   restaurantName: string
@@ -22,23 +23,99 @@ type TabletCategorySidebarProps = {
   tableName: string
 }
 
-function SidebarBrandHeader({ restaurantName }: { restaurantName: string }) {
+function scrollActiveCategoryIntoView(
+  button: HTMLButtonElement | null,
+  list: HTMLElement | null
+) {
+  if (!button || !list) return
+
+  const listRect = list.getBoundingClientRect()
+  const buttonRect = button.getBoundingClientRect()
+
+  if (buttonRect.top >= listRect.top && buttonRect.bottom <= listRect.bottom) {
+    return
+  }
+
+  button.scrollIntoView({ block: "nearest", behavior: "auto" })
+}
+
+type SidebarCategoryButtonProps = {
+  category: string
+  label: string
+  isActive: boolean
+  iconName?: CategoryIconName | string
+  onSelect: (category: string) => void
+  buttonRef?: React.Ref<HTMLButtonElement>
+}
+
+const SidebarCategoryButton = React.memo(function SidebarCategoryButton({
+  category,
+  label,
+  isActive,
+  iconName,
+  onSelect,
+  buttonRef,
+}: SidebarCategoryButtonProps) {
+  const CategoryIcon = getCategoryLucideIcon(iconName)
+
   return (
-    <div className="flex shrink-0 items-center gap-2.5 px-3 pb-2 pt-3">
-      <div className="relative h-11 w-11 shrink-0">
-        <Image
-          src={PAPER_MENU_ASSETS.logo}
-          alt={restaurantName}
-          fill
-          unoptimized
-          className="object-contain object-center"
-          priority
-          sizes="44px"
+    <li>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => onSelect(category)}
+        className={cn(
+          "tablet-sidebar-category tablet-font-sidebar relative flex w-full items-center text-left font-bold transition touch-manipulation",
+          isActive
+            ? "tablet-sidebar-category-active rounded-r-full"
+            : "tablet-sidebar-category-inactive"
+        )}
+      >
+        {isActive ? (
+          <span
+            className="tablet-category-accent-bar absolute left-0 top-1/2 h-10 w-[4px] -translate-y-1/2 rounded-full"
+            aria-hidden
+          />
+        ) : null}
+        <CategoryIcon
+          className={cn(
+            "tablet-sidebar-category-icon shrink-0",
+            isActive ? "" : "text-[var(--tablet-sidebar-text)]"
+          )}
+          aria-hidden
         />
+        <span className="truncate leading-snug">{label}</span>
+      </button>
+    </li>
+  )
+})
+
+function SidebarBrandHeader({
+  restaurantName,
+  tableName,
+}: {
+  restaurantName: string
+  tableName?: string
+}) {
+  const { t } = useLocale()
+  const showTable = hasDisplayableTableName(tableName)
+  const tableNumber = showTable ? displayTableNumber(tableName!) : ""
+
+  return (
+    <div className="tablet-sidebar-brand shrink-0">
+      <div className="tablet-sidebar-brand-card">
+        <h1 className="tablet-sidebar-brand-name tablet-font-sidebar">
+          {restaurantName}
+        </h1>
+        {showTable ? (
+          <p
+            className="tablet-sidebar-table-label tabular-nums"
+            aria-label={t.tablet.tableAria(tableNumber)}
+          >
+            {t.tablet.tableAria(tableNumber)}
+          </p>
+        ) : null}
       </div>
-      <p className="min-w-0 flex-1 text-sm font-bold leading-tight text-white">
-        <span className="line-clamp-2">{restaurantName}</span>
-      </p>
     </div>
   )
 }
@@ -55,16 +132,17 @@ function TabletCategorySidebar({
 }: TabletCategorySidebarProps) {
   const { t } = useLocale()
   const activeButtonRef = React.useRef<HTMLButtonElement>(null)
+  const categoryListRef = React.useRef<HTMLElement>(null)
   const { callingStaff, submitWaiterCall } = useWaiterCallSubmit(
     merchantId,
     tableName
   )
 
   React.useEffect(() => {
-    activeButtonRef.current?.scrollIntoView({
-      block: "nearest",
-      behavior: "smooth",
-    })
+    scrollActiveCategoryIntoView(
+      activeButtonRef.current,
+      categoryListRef.current
+    )
   }, [active])
 
   const handleCallStaff = () => {
@@ -72,62 +150,33 @@ function TabletCategorySidebar({
   }
 
   return (
-    <aside
-      className="hidden h-full shrink-0 flex-col bg-black md:flex"
-      style={{ width: TORDER_SIDEBAR_WIDTH_PX }}
-    >
-      <SidebarBrandHeader restaurantName={restaurantName} />
+    <aside className="tablet-menu-sidebar">
+      <SidebarBrandHeader restaurantName={restaurantName} tableName={tableName} />
 
-      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-1 pt-0.5">
-        <ul className="space-y-0.5">
-          {categories.map((category) => {
-            const isActive = category === active
-            const CategoryIcon = getCategoryLucideIcon(categoryIcons[category])
-
-            return (
-              <li key={category}>
-                <button
-                  ref={isActive ? activeButtonRef : undefined}
-                  type="button"
-                  onClick={() => onChange(category)}
-                  className={cn(
-                    "relative flex w-full items-center gap-2 py-2.5 pl-4 pr-3 text-left text-[15px] font-bold transition touch-manipulation",
-                    isActive
-                      ? "rounded-r-full bg-white text-black"
-                      : "text-white hover:text-white/80"
-                  )}
-                >
-                  {isActive ? (
-                    <span
-                      className="absolute left-0 top-1/2 h-9 w-[3px] -translate-y-1/2 rounded-full bg-[#e53935]"
-                      aria-hidden
-                    />
-                  ) : null}
-                  <CategoryIcon
-                    className={cn(
-                      "h-[18px] w-[18px] shrink-0",
-                      isActive ? "text-black" : "text-white"
-                    )}
-                    aria-hidden
-                  />
-                  <span className="truncate leading-snug">
-                    {getCategoryLabel?.(category) ?? category}
-                  </span>
-                </button>
-              </li>
-            )
-          })}
+      <nav ref={categoryListRef} className="tablet-sidebar-category-list">
+        <ul>
+          {categories.map((category) => (
+            <SidebarCategoryButton
+              key={category}
+              category={category}
+              label={getCategoryLabel?.(category) ?? category}
+              isActive={category === active}
+              iconName={categoryIcons[category]}
+              onSelect={onChange}
+              buttonRef={category === active ? activeButtonRef : undefined}
+            />
+          ))}
         </ul>
       </nav>
 
-      <div className="shrink-0 p-3 pt-2">
+      <div className="tablet-sidebar-staff-call">
         <button
           type="button"
           disabled={callingStaff}
           onClick={handleCallStaff}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#2a2a2a] px-3 text-sm font-bold text-white transition hover:bg-[#333333] disabled:opacity-50 touch-manipulation"
+          className="tablet-sidebar-call-staff tablet-font-button flex w-full items-center justify-center rounded-xl font-bold transition disabled:opacity-50 touch-manipulation"
         >
-          <Bell className="h-4 w-4 shrink-0" aria-hidden />
+          <Bell className="tablet-sidebar-call-staff-icon shrink-0" aria-hidden />
           <span>{t.tablet.callStaff}</span>
         </button>
       </div>
@@ -135,5 +184,5 @@ function TabletCategorySidebar({
   )
 }
 
-export default TabletCategorySidebar
+export default React.memo(TabletCategorySidebar)
 export { SidebarBrandHeader }

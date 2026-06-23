@@ -1,11 +1,12 @@
 import mongoServer from "@/config/mongoConfig";
-import { Merchants } from "@/model/merchants";
 import { Menu } from "@/model/menu";
 import { VisitorModel } from "@/model/visitors";
 import { sendRJResponse } from "@/utils/api";
 import { normalizeMenuDocument } from "@/utils/menuBilingual";
 import { applyMenuOrdering } from "@/utils/menuOrder";
 import { getMenuOrderSnapshot } from "@/utils/menuOrderStore";
+import { getTabletDisplaySettingsForMerchantId } from "@/service/settings/tabletDisplaySettingsService";
+import { getRestaurantDisplayNameForMerchantId } from "@/service/restaurantDisplayService";
 import { isValidObjectId, Types } from "mongoose";
 import { NextRequest } from "next/server";
 import {
@@ -13,6 +14,9 @@ import {
   resolveTenantScopeFromMerchantId,
 } from "@/lib/tenant";
 import { scopedMerchantMenuQuery } from "@/utils/menuMerchantScope";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -61,11 +65,15 @@ export async function GET(req: NextRequest) {
       order.itemOrders
     );
 
-    let restaurantName = "Ресторан";
-    const merchant = await Merchants.findById(merchantObjectId)
-      .select("name")
-      .lean();
-    if (merchant?.name) restaurantName = merchant.name;
+    let restaurantName = await getRestaurantDisplayNameForMerchantId(
+      merchantObjectId
+    );
+    const displaySettings =
+      await getTabletDisplaySettingsForMerchantId(merchantObjectId)
+    const tabletUiScale = displaySettings.uiScale
+    const tabletTextScale = displaySettings.textScale
+    const tabletTheme = displaySettings.theme
+    const textScale = tabletTextScale
 
     if (!userId || !isValidObjectId(userId) || merchantId !== userId) {
       await VisitorModel.create({
@@ -82,6 +90,12 @@ export async function GET(req: NextRequest) {
         restaurantName,
         sectionIcons: order.sectionIcons,
         sectionMeta: order.sectionMeta,
+        tabletUiScale,
+        tabletTextScale,
+        tabletTheme,
+        theme: tabletTheme,
+        textScale,
+        uiScale: tabletUiScale,
       },
       status: 200,
     });

@@ -31,8 +31,8 @@ function TabletOrderConfirmLine({ item }: TabletOrderConfirmLineProps) {
   const lineTotal = item.price * item.itemCount
 
   return (
-    <li className="flex items-center gap-3 border-b border-slate-100 py-3 last:border-b-0">
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+    <li className="tablet-themed-history-line flex items-center gap-3 py-3 last:border-b-0">
+      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg" style={{ background: "var(--tablet-image-bg)" }}>
         {imageSrc ? (
           <Image
             src={imageSrc}
@@ -42,24 +42,24 @@ function TabletOrderConfirmLine({ item }: TabletOrderConfirmLineProps) {
             sizes="56px"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-slate-400">
+          <div className="tablet-themed-muted flex h-full w-full items-center justify-center">
             <ImagePlus className="h-5 w-5" aria-hidden />
           </div>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-slate-900">{displayName}</p>
+        <p className="truncate text-sm font-bold">{displayName}</p>
         {portionLabel ? (
-          <p className="truncate text-xs text-slate-500">{portionLabel}</p>
+          <p className="tablet-themed-muted truncate text-xs">{portionLabel}</p>
         ) : null}
-        <p className="mt-0.5 text-xs font-medium text-slate-600">
+        <p className="tablet-themed-muted mt-0.5 text-xs font-medium">
           {t.tablet.qtyLabel}{" "}
           <span className="font-bold tabular-nums">{item.itemCount}</span>
         </p>
       </div>
 
-      <span className="shrink-0 text-sm font-extrabold tabular-nums text-slate-900">
+      <span className="shrink-0 text-sm font-extrabold tabular-nums">
         {formatPrice(lineTotal)}
       </span>
     </li>

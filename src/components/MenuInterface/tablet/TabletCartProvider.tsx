@@ -14,15 +14,23 @@ import TabletOrderSuccessModal from "./TabletOrderSuccessModal"
 import TabletOrderHistoryModal from "./TabletOrderHistoryModal"
 import { useTabletPlaceOrder } from "./useTabletPlaceOrder"
 import { TabletCartContext } from "./useTabletCartUi"
+import { DEFAULT_TABLET_TEXT_SCALE, DEFAULT_TABLET_UI_SCALE } from "@/utils/tabletUiScale"
+import { DEFAULT_TABLET_THEME, type TabletThemeId } from "@/utils/tabletTheme"
 
 type TabletCartProviderProps = {
   merchantId: string
   children: React.ReactNode
+  uiScale?: number
+  textScale?: number
+  theme?: TabletThemeId
 }
 
 function TabletCartProvider({
   merchantId,
   children,
+  uiScale = DEFAULT_TABLET_UI_SCALE,
+  textScale = DEFAULT_TABLET_TEXT_SCALE,
+  theme = DEFAULT_TABLET_THEME,
 }: TabletCartProviderProps) {
   const dispatch = useAppDispatch()
   const router = useRouter()
@@ -99,14 +107,22 @@ function TabletCartProvider({
       recentLineKey,
       notifyItemAdded,
       openOrderConfirm,
+      uiScale,
+      textScale,
+      theme,
     }),
-    [open, historyOpen, recentLineKey, notifyItemAdded, openOrderConfirm]
+    [open, historyOpen, recentLineKey, notifyItemAdded, openOrderConfirm, uiScale, textScale, theme]
   )
 
   return (
     <TabletCartContext.Provider value={value}>
       {children}
-      <TabletCartDrawer merchantId={merchantId} />
+      <TabletCartDrawer
+        merchantId={merchantId}
+        uiScale={uiScale}
+        textScale={textScale}
+        theme={theme}
+      />
       <TabletOrderConfirmModal
         open={confirmOpen}
         submitting={submitting}

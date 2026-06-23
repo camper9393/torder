@@ -115,6 +115,11 @@ export default function SettingsRestaurantSelector() {
     useSettingsRestaurantContext();
   const [restaurants, setRestaurants] = React.useState<Restaurant[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (!isPlatformOwner) return;
@@ -136,14 +141,23 @@ export default function SettingsRestaurantSelector() {
     };
   }, [isPlatformOwner]);
 
-  const effectiveRestaurantId =
-    restaurantId ??
-    (restaurants.length === 1 ? String(restaurants[0]._id) : null);
+  const effectiveRestaurantId = mounted
+    ? restaurantId ??
+      (restaurants.length === 1 ? String(restaurants[0]._id) : null)
+    : null;
 
   React.useEffect(() => {
-    if (!isPlatformOwner || restaurantId || restaurants.length !== 1) return;
+    if (
+      !mounted ||
+      !isPlatformOwner ||
+      restaurantId ||
+      restaurants.length !== 1
+    ) {
+      return;
+    }
     setSelectedRestaurantId(String(restaurants[0]._id));
   }, [
+    mounted,
     isPlatformOwner,
     restaurantId,
     restaurants,
@@ -152,10 +166,11 @@ export default function SettingsRestaurantSelector() {
 
   if (!isPlatformOwner) return null;
 
-  const selected = restaurants.find(
-    (r) => String(r._id) === effectiveRestaurantId
-  );
-  const selectValue = effectiveRestaurantId ?? "";
+  const selected =
+    effectiveRestaurantId != null
+      ? restaurants.find((r) => String(r._id) === effectiveRestaurantId)
+      : undefined;
+  const selectValue = selected ? String(selected._id) : "";
   const placeholder = "Ресторан сонгох";
 
   return (

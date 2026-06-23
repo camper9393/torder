@@ -18,6 +18,11 @@ import {
   TABLET_ORDER_HISTORY_EVENT,
   type TabletOrderHistoryBatch,
 } from "@/utils/tabletOrderHistory"
+import { useTabletCartUiOptional } from "./useTabletCartUi"
+import {
+  buildTabletThemeCssVars,
+  DEFAULT_TABLET_THEME,
+} from "@/utils/tabletTheme"
 
 type TabletOrderHistoryModalProps = {
   open: boolean
@@ -84,8 +89,8 @@ function TabletOrderHistoryLine({
   const lineTotal = line.item.price * line.item.itemCount
 
   return (
-    <li className="flex gap-3 border-b border-slate-100 py-3 last:border-b-0">
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+    <li className="tablet-themed-history-line flex gap-3 py-3 last:border-b-0">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl" style={{ background: "var(--tablet-image-bg)" }}>
         {imageSrc ? (
           <Image
             src={imageSrc}
@@ -95,32 +100,30 @@ function TabletOrderHistoryLine({
             sizes="64px"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-slate-400">
+          <div className="tablet-themed-muted flex h-full w-full items-center justify-center">
             <ImagePlus className="h-5 w-5" aria-hidden />
           </div>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-slate-900">{displayName}</p>
+        <p className="truncate text-sm font-bold">{displayName}</p>
         {portionLabel ? (
-          <p className="mt-0.5 truncate text-xs font-medium text-slate-500">
+          <p className="tablet-themed-muted mt-0.5 truncate text-xs font-medium">
             {portionLabel}
           </p>
         ) : null}
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-600">
+        <div className="tablet-themed-muted mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
           <span>
             {t.tablet.qtyLabel}{" "}
-            <span className="font-bold tabular-nums text-slate-900">
-              {line.item.itemCount}
-            </span>
+            <span className="font-bold tabular-nums">{line.item.itemCount}</span>
           </span>
-          <span className="text-slate-300">·</span>
+          <span style={{ color: "var(--tablet-border)" }}>·</span>
           <span>{formatOrderTime(line.submittedAt, locale)}</span>
         </div>
       </div>
 
-      <span className="shrink-0 self-center text-sm font-extrabold tabular-nums text-slate-900">
+      <span className="shrink-0 self-center text-sm font-extrabold tabular-nums">
         {formatPrice(lineTotal)}
       </span>
     </li>
@@ -134,6 +137,8 @@ function TabletOrderHistoryModal({
   onClose,
 }: TabletOrderHistoryModalProps) {
   const { t } = useLocale()
+  const cartUi = useTabletCartUiOptional()
+  const themeStyle = buildTabletThemeCssVars(cartUi?.theme ?? DEFAULT_TABLET_THEME)
   const [batches, setBatches] = React.useState<TabletOrderHistoryBatch[]>([])
 
   const reload = React.useCallback(() => {
@@ -176,19 +181,22 @@ function TabletOrderHistoryModal({
       <button
         type="button"
         aria-label={t.common.close}
-        className="absolute inset-0 bg-black/50"
+        className="tablet-themed-modal-backdrop absolute inset-0"
+        style={themeStyle}
         onClick={onClose}
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="tablet-order-history-title"
-        className="relative flex max-h-[min(92dvh,820px)] w-full max-w-[560px] flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl"
+        className="tablet-themed-modal-panel relative flex max-h-[min(92dvh,820px)] w-full max-w-[560px] flex-col overflow-hidden rounded-t-2xl shadow-2xl sm:rounded-2xl"
+        style={themeStyle}
+        data-tablet-theme={cartUi?.theme ?? DEFAULT_TABLET_THEME}
       >
-        <header className="flex shrink-0 items-center justify-between border-b border-slate-200 px-4 py-3.5 sm:px-5">
+        <header className="tablet-themed-modal-header flex shrink-0 items-center justify-between px-4 py-3.5 sm:px-5">
           <h2
             id="tablet-order-history-title"
-            className="text-lg font-bold text-slate-900"
+            className="text-lg font-bold"
           >
             {t.tablet.orderHistoryTitle}
           </h2>
@@ -196,7 +204,7 @@ function TabletOrderHistoryModal({
             type="button"
             onClick={onClose}
             aria-label={t.common.close}
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 active:scale-95 touch-manipulation"
+            className="tablet-themed-dialog-close flex h-10 w-10 items-center justify-center rounded-xl transition active:scale-95 touch-manipulation"
           >
             <X className="h-5 w-5" />
           </button>
@@ -204,7 +212,7 @@ function TabletOrderHistoryModal({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-2 sm:px-5">
           {lines.length === 0 ? (
-            <p className="py-16 text-center text-sm font-medium text-slate-500">
+            <p className="tablet-themed-muted py-16 text-center text-sm font-medium">
               {t.tablet.historyEmpty}
             </p>
           ) : (
@@ -216,13 +224,13 @@ function TabletOrderHistoryModal({
           )}
         </div>
 
-        <footer className="shrink-0 bg-red-600 px-4 py-4 text-white sm:px-5">
+        <footer className="tablet-themed-modal-footer-accent shrink-0 px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-semibold">
               {t.tablet.historyTotalLabel}
             </span>
             <div className="text-right">
-              <p className="text-xs font-medium text-red-100">
+              <p className="text-xs font-medium opacity-80">
                 {t.tablet.piecesCount(totalQty)}
               </p>
               <p className="text-xl font-extrabold tabular-nums">

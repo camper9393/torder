@@ -7,6 +7,7 @@ import {
 } from "@/service/restaurantService";
 import { sendRJResponse } from "@/utils/api";
 import { serializeRestaurant } from "@/utils/platformSerialize";
+import { revalidatePath } from "next/cache";
 import { NextRequest } from "next/server";
 
 const FORBIDDEN_PATCH = ["_id", "restaurantId", "slug", "createdAt", "updatedAt", "startDate"];
@@ -69,7 +70,17 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       ownerName: body.ownerName,
       email: body.email,
       phone: body.phone,
+      phone2: body.phone2,
       address: body.address,
+      englishName: body.englishName,
+      logoUrl: body.logoUrl,
+      businessType: body.businessType,
+      description: body.description,
+      detailDescription: body.detailDescription,
+      website: body.website,
+      facebook: body.facebook,
+      instagram: body.instagram,
+      googleMapLink: body.googleMapLink,
       plan:
         body.plan && Object.values(RestaurantPlan).includes(body.plan)
           ? body.plan
@@ -92,6 +103,8 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
         status: 404,
       });
     }
+
+    revalidatePath("/consumer", "layout");
 
     return sendRJResponse({
       success: true,

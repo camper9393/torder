@@ -19,7 +19,17 @@ export interface IRestaurant {
   ownerName: string;
   email: string;
   phone: string;
+  phone2: string;
   address: string;
+  englishName: string;
+  logoUrl: string;
+  businessType: string;
+  description: string;
+  detailDescription: string;
+  website: string;
+  facebook: string;
+  instagram: string;
+  googleMapLink: string;
   plan: RestaurantPlan;
   subscriptionStatus: SubscriptionStatus;
   startDate: Date;
@@ -38,7 +48,17 @@ const restaurantSchema = new mongoose.Schema<IRestaurant>(
     ownerName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
     phone: { type: String, required: true, trim: true },
+    phone2: { type: String, default: "", trim: true },
     address: { type: String, default: "", trim: true },
+    englishName: { type: String, default: "", trim: true },
+    logoUrl: { type: String, default: "", trim: true },
+    businessType: { type: String, default: "", trim: true },
+    description: { type: String, default: "", trim: true },
+    detailDescription: { type: String, default: "", trim: true },
+    website: { type: String, default: "", trim: true },
+    facebook: { type: String, default: "", trim: true },
+    instagram: { type: String, default: "", trim: true },
+    googleMapLink: { type: String, default: "", trim: true },
     plan: {
       type: String,
       required: true,

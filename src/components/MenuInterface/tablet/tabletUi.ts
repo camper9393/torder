@@ -15,7 +15,7 @@ export const PAPER_CREAM = "#f3e8cf"
 export const PAPER_BORDER = "rgba(201, 162, 39, 0.35)"
 
 /** Korean t'order layout (consumer ordering page). */
-export const TORDER_SIDEBAR_WIDTH_PX = 220
+export const TORDER_SIDEBAR_WIDTH_PX = 230
 export const TORDER_BOTTOM_BAR_HEIGHT_PX = 72
 export const TORDER_BLACK = "#111111"
 export const TORDER_BLACK_SOFT = "#2a2a2a"

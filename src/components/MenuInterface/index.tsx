@@ -12,12 +12,30 @@ import { useSearchParams } from "next/navigation"
 import { parseTableFromSearchParam } from "@/utils/table"
 import { useLocale } from "@/context/LocaleContext"
 import type { SectionMetaMap } from "@/utils/sectionMeta"
+import {
+  DEFAULT_TABLET_TEXT_SCALE,
+  DEFAULT_TABLET_UI_SCALE,
+  normalizeTabletTextScale,
+  normalizeTabletUiScale,
+} from "@/utils/tabletUiScale"
+import {
+  DEFAULT_TABLET_THEME,
+  normalizeTabletTheme,
+  type TabletThemeId,
+} from "@/utils/tabletTheme"
+import { subscribeRestaurantInfoUpdated } from "@/utils/restaurantInfoRefresh"
 
 type ConsumerMenuPayload = {
   menu: IMenu[]
   restaurantName: string
   sectionIcons?: Record<string, string>
   sectionMeta?: SectionMetaMap
+  tabletUiScale?: number
+  tabletTextScale?: number
+  tabletTheme?: TabletThemeId
+  uiScale?: number
+  textScale?: number
+  theme?: TabletThemeId
 }
 
 function isValidMerchantId(value: string | null | undefined): boolean {
@@ -40,10 +58,37 @@ function MerchantPage({
   const { t } = useLocale()
   const [restaurantName, setRestaurantName] = React.useState("")
   const [loading, setLoading] = React.useState(true)
+  const [tabletUiScale, setTabletUiScale] = React.useState(DEFAULT_TABLET_UI_SCALE)
+  const [tabletTextScale, setTabletTextScale] = React.useState(
+    DEFAULT_TABLET_TEXT_SCALE
+  )
+  const [tabletTheme, setTabletTheme] = React.useState<TabletThemeId>(
+    DEFAULT_TABLET_THEME
+  )
   const dispatch = useAppDispatch()
   const searchParams = useSearchParams()
   const tableName = useAppSelector((state) => state.checkOut.tableName)
   const userId = useAppSelector((state) => state.merchant).merchant?._id
+
+  const previewMode = searchParams.get("preview") === "true"
+  const urlScaleParam = searchParams.get("uiScale")
+  const urlTextScaleParam = searchParams.get("textScale")
+  const urlThemeParam = searchParams.get("theme")
+  const previewUiScale =
+    previewMode && urlScaleParam != null && urlScaleParam.trim() !== ""
+      ? normalizeTabletUiScale(urlScaleParam)
+      : null
+  const urlTextScale =
+    urlTextScaleParam != null && urlTextScaleParam.trim() !== ""
+      ? normalizeTabletTextScale(urlTextScaleParam)
+      : null
+  const previewTheme =
+    previewMode && urlThemeParam != null && urlThemeParam.trim() !== ""
+      ? normalizeTabletTheme(urlThemeParam)
+      : null
+  const resolvedUiScale = previewUiScale ?? tabletUiScale
+  const resolvedTextScale = urlTextScale ?? tabletTextScale
+  const resolvedTheme = previewTheme ?? tabletTheme
 
   React.useEffect(() => {
     const fromUrl = parseTableFromSearchParam(searchParams.get("table"))
@@ -53,7 +98,7 @@ function MerchantPage({
   React.useEffect(() => {
     let cancelled = false
 
-    const loadMenu = async () => {
+    const loadMenu = async (cacheBust?: number) => {
       if (!isValidMerchantId(merchantId)) {
         setMenu([])
         setSectionIcons({})
@@ -69,6 +114,9 @@ function MerchantPage({
       if (isValidMerchantId(userId ? String(userId) : null)) {
         params.set("userId", String(userId))
       }
+      if (cacheBust != null) {
+        params.set("_t", String(cacheBust))
+      }
 
       const response = await getApi<ApiResponse<ConsumerMenuPayload | IMenu[]>>({
         url: `${CONSUMER_MENU}?${params.toString()}`,
@@ -82,9 +130,31 @@ function MerchantPage({
           setSectionIcons({})
         } else {
           setMenu(response.data.menu ?? [])
-          setRestaurantName(response.data.restaurantName ?? t.common.restaurant)
+          const name = response.data.restaurantName?.trim()
+          setRestaurantName(name || t.common.restaurant)
           setSectionIcons(response.data.sectionIcons ?? {})
           setSectionMeta(response.data.sectionMeta ?? {})
+          setTabletUiScale(
+            normalizeTabletUiScale(
+              response.data.tabletUiScale ??
+                response.data.uiScale ??
+                DEFAULT_TABLET_UI_SCALE
+            )
+          )
+          setTabletTextScale(
+            normalizeTabletTextScale(
+              response.data.tabletTextScale ??
+                response.data.textScale ??
+                DEFAULT_TABLET_TEXT_SCALE
+            )
+          )
+          setTabletTheme(
+            normalizeTabletTheme(
+              response.data.tabletTheme ??
+                response.data.theme ??
+                DEFAULT_TABLET_THEME
+            )
+          )
         }
       } else {
         setMenu([])
@@ -96,10 +166,22 @@ function MerchantPage({
       setLoading(false)
     }
 
-    loadMenu()
+    void loadMenu()
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void loadMenu(Date.now())
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    const unsubscribeInfo = subscribeRestaurantInfoUpdated(() => {
+      void loadMenu(Date.now())
+    })
 
     return () => {
       cancelled = true
+      document.removeEventListener("visibilitychange", onVisible)
+      unsubscribeInfo()
     }
   }, [merchantId, userId, t.common.restaurant])
 
@@ -110,12 +192,15 @@ function MerchantPage({
   return (
     <TabletMenuLayout
       merchantId={merchantId}
-      restaurantName={restaurantName || t.common.restaurant}
+      restaurantName={restaurantName}
       tableName={tableName}
       menu={menu}
       sectionIcons={sectionIcons}
       sectionMeta={sectionMeta}
       loading={loading}
+      uiScale={resolvedUiScale}
+      textScale={resolvedTextScale}
+      theme={resolvedTheme}
     />
   )
 }

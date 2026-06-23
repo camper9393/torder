@@ -9,18 +9,36 @@ import { cn } from "@/lib/utils"
 import { useTabletPlaceOrder } from "./useTabletPlaceOrder"
 import { useTabletCartUi } from "./useTabletCartUi"
 import TabletCartDrawerItem from "./TabletCartDrawerItem"
-import { TORDER_BOTTOM_BAR_HEIGHT_PX } from "./tabletUi"
+import {
+  DEFAULT_TABLET_TEXT_SCALE,
+  DEFAULT_TABLET_UI_SCALE,
+} from "@/utils/tabletUiScale"
+import {
+  DEFAULT_TABLET_THEME,
+  buildTabletShellCssVars,
+  type TabletThemeId,
+} from "@/utils/tabletTheme"
 
 type TabletCartDrawerProps = {
   merchantId: string
+  uiScale?: number
+  textScale?: number
+  theme?: TabletThemeId
 }
 
-function TabletCartDrawer({ merchantId }: TabletCartDrawerProps) {
+function TabletCartDrawer({
+  merchantId,
+  uiScale = DEFAULT_TABLET_UI_SCALE,
+  textScale = DEFAULT_TABLET_TEXT_SCALE,
+  theme = DEFAULT_TABLET_THEME,
+}: TabletCartDrawerProps) {
   const { t } = useLocale()
   const { open, closeCart, recentLineKey, openOrderConfirm } = useTabletCartUi()
   const checkout = useAppSelector((state) => state.checkOut.items)
   const { submitting, discountedTotal, itemCount, isEmpty } =
     useTabletPlaceOrder(merchantId)
+
+  const shellStyle = buildTabletShellCssVars(uiScale, textScale, theme)
 
   const sortedItems = React.useMemo(() => {
     const reversed = [...checkout].reverse()
@@ -45,26 +63,29 @@ function TabletCartDrawer({ merchantId }: TabletCartDrawerProps) {
         aria-label={t.common.close}
         onClick={closeCart}
         className={cn(
-          "fixed inset-0 z-[100] bg-black/40 transition-opacity duration-300",
+          "tablet-themed-overlay fixed inset-0 z-[100] transition-opacity duration-300",
           open ? "opacity-100" : "pointer-events-none opacity-0"
         )}
+        style={shellStyle}
       />
 
       <aside
         aria-hidden={!open}
+        data-tablet-theme={theme}
         className={cn(
-          "fixed right-0 top-0 z-[101] flex w-[min(400px,92vw)] min-w-[320px] flex-col border-l border-slate-200 bg-white shadow-2xl transition-transform duration-300 ease-out",
+          "tablet-cart-drawer tablet-themed-dialog fixed right-0 top-0 z-[101] flex flex-col shadow-2xl transition-transform duration-300 ease-out",
           open ? "translate-x-0" : "pointer-events-none translate-x-full"
         )}
         style={{
-          bottom: TORDER_BOTTOM_BAR_HEIGHT_PX,
+          ...shellStyle,
+          bottom: "var(--tablet-bottom-bar-height, 84px)",
         }}
       >
-        <header className="flex shrink-0 items-center gap-2 border-b border-slate-200 px-4 py-3">
-          <h2 className="min-w-0 flex-1 text-base font-bold text-slate-900">
+        <header className="tablet-cart-drawer-header tablet-themed-dialog-header flex shrink-0 items-center gap-3">
+          <h2 className="tablet-cart-drawer-title min-w-0 flex-1">
             🛒 {t.tablet.cart}
             {itemCount > 0 ? (
-              <span className="ml-1 tabular-nums text-slate-600">
+              <span className="tablet-themed-muted ml-1 tabular-nums">
                 ({itemCount})
               </span>
             ) : null}
@@ -73,19 +94,19 @@ function TabletCartDrawer({ merchantId }: TabletCartDrawerProps) {
             type="button"
             onClick={closeCart}
             aria-label={t.common.close}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-lg font-bold text-slate-600 transition hover:bg-slate-50 touch-manipulation"
+            className="tablet-cart-drawer-close tablet-themed-dialog-close flex shrink-0 items-center justify-center rounded-lg font-bold transition touch-manipulation"
           >
             ✕
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="tablet-cart-drawer-list min-h-0 flex-1 overflow-y-auto">
           {isEmpty ? (
-            <p className="py-12 text-center text-sm text-slate-500">
+            <p className="tablet-cart-drawer-empty tablet-font-cart tablet-themed-muted py-12 text-center">
               {t.tablet.emptyCart}
             </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {sortedItems.map((item) => {
                 const key = checkoutLineKey(item)
                 return (
@@ -100,12 +121,12 @@ function TabletCartDrawer({ merchantId }: TabletCartDrawerProps) {
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-slate-200 bg-white px-4 py-3 shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
-          <div className="mb-3 flex items-baseline justify-between gap-2">
-            <span className="text-sm font-semibold text-slate-700">
+        <footer className="tablet-cart-drawer-footer tablet-themed-dialog-footer shrink-0 shadow-[0_-4px_16px_rgba(15,23,42,0.06)]">
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <span className="tablet-cart-drawer-total-label tablet-themed-muted">
               {t.tablet.totalColon}
             </span>
-            <span className="text-xl font-extrabold tabular-nums text-slate-900">
+            <span className="tablet-cart-drawer-total-value tabular-nums">
               {formatPrice(discountedTotal)}
             </span>
           </div>
@@ -113,7 +134,7 @@ function TabletCartDrawer({ merchantId }: TabletCartDrawerProps) {
             type="button"
             onClick={openOrderConfirm}
             disabled={submitting || isEmpty}
-            className="flex min-h-14 w-full items-center justify-center rounded-xl bg-red-600 px-4 text-base font-bold text-white shadow-md transition hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none touch-manipulation"
+            className="tablet-cart-drawer-submit tablet-themed-btn-primary flex w-full items-center justify-center px-4 shadow-md transition disabled:cursor-not-allowed disabled:opacity-45 touch-manipulation"
           >
             {submitting ? t.tablet.placingOrder : t.tablet.submitOrder}
           </button>
