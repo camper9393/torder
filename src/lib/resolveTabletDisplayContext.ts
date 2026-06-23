@@ -141,9 +141,11 @@ export async function resolveTabletDisplayContext(
         sessionRestaurantId
       );
       const paramMerchantId = identityLookup.merchantId;
+      if (!paramMerchantId) {
+        return { ok: false, debug };
+      }
 
       if (
-        paramMerchantId &&
         sessionMerchantId &&
         paramMerchantId.equals(sessionMerchantId)
       ) {

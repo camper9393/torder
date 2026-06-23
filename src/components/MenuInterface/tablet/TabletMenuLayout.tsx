@@ -21,6 +21,7 @@ import {
   resolveSectionLabel,
   type SectionMetaMap,
 } from "@/utils/sectionMeta"
+import type { TabletThemeId } from "@/utils/tabletTheme"
 
 type TabletMenuLayoutProps = {
   merchantId: string
